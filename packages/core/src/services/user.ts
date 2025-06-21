@@ -6,6 +6,7 @@ const User = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
+  dietaryRestrictions: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -52,5 +53,17 @@ export class UserService {
     await this.usersColl.insertOne(mongoUser);
 
     return fromMongo.user(mongoUser);
+  }
+
+  async getDietaryRestrictions(
+    userId: string
+  ): Promise<User["dietaryRestrictions"] | null> {
+    const { dietaryRestrictions } = (await this.usersColl.findOne(
+      { _id: userId },
+      { projection: { dietaryRestrictions: 1 } }
+    )) as { dietaryRestrictions: User["dietaryRestrictions"] };
+
+    if (!dietaryRestrictions) return null;
+    return dietaryRestrictions;
   }
 }

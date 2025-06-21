@@ -1,4 +1,4 @@
-import { Collection, MongoClient, ObjectId } from "mongodb";
+import { Collection, MongoClient } from "mongodb";
 import { ulid } from "ulid";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ const RecipeVersion = z.object({
   recipeId: z.string(),
   userId: z.string(),
   generatedName: z.string(),
+  version: z.number(),
   description: z.string(),
   prepTime: z.number(), // in minutes
   cookTime: z.number(), // in minutes
@@ -18,12 +19,25 @@ const RecipeVersion = z.object({
 
 export type RecipeVersion = z.infer<typeof RecipeVersion>;
 
+const RecipePrompt = z.object({
+  id: z.string(),
+  recipeId: z.string(),
+  userId: z.string(),
+  message: z.string(), // The message that the user provided to generate the recipe version.
+  generatedVersion: z.string(), // The ID of the generated recipe version from this prompt.
+  createdAt: z.date(),
+});
+
+export type RecipePrompt = z.infer<typeof RecipePrompt>;
+
 const Recipe = z.object({
   id: z.string(),
   userGivenName: z.string().nullish(), // A user specified name for the recipe.
   generatedName: z.string(), // This is an auto-generated name for the recipe given by the first recipe version.
   recentVersions: z.array(RecipeVersion),
   userId: z.string(),
+  visibility: z.enum(["public", "private"]),
+  dietaryRestrictions: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -36,6 +50,10 @@ type MongoRecipe = Omit<Recipe, "id" | "recentVersions"> & {
 };
 
 type MongoRecipeVersion = Omit<RecipeVersion, "id"> & {
+  _id: string;
+};
+
+type MongoRecipePrompt = Omit<RecipePrompt, "id"> & {
   _id: string;
 };
 
@@ -53,6 +71,12 @@ const toMongo = {
       _id: recipeVersion.id,
     };
   },
+  recipePrompt: (recipePrompt: RecipePrompt): MongoRecipePrompt => {
+    return {
+      ...recipePrompt,
+      _id: recipePrompt.id,
+    };
+  },
 };
 
 const fromMongo = {
@@ -67,6 +91,12 @@ const fromMongo = {
     return {
       ...mongoRecipeVersion,
       id: mongoRecipeVersion._id,
+    };
+  },
+  recipePrompt: (mongoRecipePrompt: MongoRecipePrompt): RecipePrompt => {
+    return {
+      ...mongoRecipePrompt,
+      id: mongoRecipePrompt._id,
     };
   },
 };
@@ -89,9 +119,11 @@ export class RecipeService {
     return `${prefix}_${ulid()}`;
   }
 
-  async createRecipe(
-    initialRecipeVersion: Omit<RecipeVersion, "id">
-  ): Promise<Recipe> {
+  async createRecipe(recipe: {
+    dietaryRestrictions: Recipe["dietaryRestrictions"];
+    visibility: Recipe["visibility"];
+    initialRecipeVersion: Omit<RecipeVersion, "id">;
+  }): Promise<Recipe> {
     const recipeId = this.uid("recipe");
     const recipeVersionId = this.uid("recipe_ver");
 
@@ -99,18 +131,20 @@ export class RecipeService {
 
     const mongoRecipeVersion: MongoRecipeVersion = {
       _id: recipeVersionId,
-      ...initialRecipeVersion,
+      ...recipe.initialRecipeVersion,
       createdAt: now,
     };
 
     const mongoRecipe: MongoRecipe = {
       _id: recipeId,
-      userId: initialRecipeVersion.userId,
-      generatedName: initialRecipeVersion.generatedName,
+      userId: recipe.initialRecipeVersion.userId,
+      generatedName: recipe.initialRecipeVersion.generatedName,
+      visibility: recipe.visibility,
+      dietaryRestrictions: recipe.dietaryRestrictions,
       recentVersions: [
         {
           _id: recipeVersionId,
-          ...initialRecipeVersion,
+          ...recipe.initialRecipeVersion,
         },
       ],
       createdAt: new Date(),
