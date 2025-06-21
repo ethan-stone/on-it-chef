@@ -3,18 +3,26 @@
 export default $config({
   app(input) {
     return {
-      name: "monorepo-template",
+      name: "optra",
       removal: input?.stage === "production" ? "retain" : "remove",
-      protect: ["production"].includes(input?.stage),
       home: "aws",
+      providers: {
+        aws: {
+          profile: "admin-personal",
+        },
+      },
     };
   },
   async run() {
-    const storage = await import("./infra/storage");
-    await import("./infra/api");
+    const { readdirSync } = await import("fs");
 
-    return {
-      MyBucket: storage.bucket.name,
-    };
+    const outputs = {};
+
+    for (const value of readdirSync("./infra/")) {
+      const result = await import(`./infra/${value}`);
+      if (result.outputs) Object.assign(outputs, result.outputs);
+    }
+
+    return outputs;
   },
 });

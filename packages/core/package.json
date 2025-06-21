@@ -1,5 +1,5 @@
 {
-  "name": "@monorepo-template/core",
+  "name": "@on-it-chef/core",
   "type": "module",
   "version": "0.0.0",
   "scripts": {
@@ -12,9 +12,13 @@
     ]
   },
   "dependencies": {
-    "sst": "*"
+    "mongodb": "^6.17.0",
+    "sst": "*",
+    "ulid": "^3.0.1",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@types/node": "^24.0.3",
     "vitest": "^2"
   }
 }
