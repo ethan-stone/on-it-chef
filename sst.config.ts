@@ -3,7 +3,7 @@
 export default $config({
   app(input) {
     return {
-      name: "optra",
+      name: "on-it-chef",
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
       providers: {

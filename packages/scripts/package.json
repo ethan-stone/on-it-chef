@@ -1,9 +1,9 @@
 {
-  "name": "@monorepo-template/scripts",
+  "name": "@on-it-chef/scripts",
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "@monorepo-template/core": "*",
+    "@on-it-chef/core": "workspace:*",
     "sst": "*"
   },
   "scripts": {

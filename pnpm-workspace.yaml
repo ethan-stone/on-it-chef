@@ -3,5 +3,5 @@ ignoredBuiltDependencies:
 
 nodeLinker: hoisted
 
-workspaces:
-  - packages/*
+packages:
+  - packages/**/*
