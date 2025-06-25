@@ -1,39 +1,22 @@
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
-import { Link } from "expo-router";
+import { SignedIn, SignedOut } from "@clerk/clerk-expo";
+import { Link, Redirect } from "expo-router";
 import { StyleSheet, View, TouchableOpacity, SafeAreaView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SignOutButton } from "@/components/SignOutButton";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useThemeColor } from "@/hooks/useThemeColor";
 
 export default function Page() {
-  const { user } = useUser();
-  const tintColor = useThemeColor({}, "tint");
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
         <SignedIn>
-          {/* Simple welcome for signed in users */}
-          <View style={styles.signedInContainer}>
-            <View style={styles.welcomeSection}>
-              <Ionicons name="checkmark-circle" size={64} color={tintColor} />
-              <ThemedText type="title" style={styles.welcomeTitle}>
-                Welcome back!
-              </ThemedText>
-              <ThemedText style={styles.welcomeSubtitle}>
-                You&apos;re signed in as {user?.emailAddresses[0].emailAddress}
-              </ThemedText>
-            </View>
-            <SignOutButton />
-          </View>
+          <Redirect href="/(home)/(tabs)/recipes" />
         </SignedIn>
 
         <SignedOut>
-          {/* Simple auth landing page */}
+          {/* Auth landing page */}
           <View style={styles.authContainer}>
-            {/* Simple Header */}
+            {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerContent}>
                 <Ionicons name="restaurant" size={48} color="#8B7355" />
@@ -67,7 +50,7 @@ export default function Page() {
               </Link>
             </View>
 
-            {/* Simple description */}
+            {/* Description */}
             <View style={styles.descriptionSection}>
               <ThemedText style={styles.descriptionText}>
                 Join thousands of home chefs discovering and sharing amazing

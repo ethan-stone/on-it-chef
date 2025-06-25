@@ -19,16 +19,15 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [pendingVerification, setPendingVerification] = React.useState(false);
   const [code, setCode] = React.useState("");
+  const [pendingVerification, setPendingVerification] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
     if (!isLoaded) return;
-    if (!emailAddress || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!emailAddress) {
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
 
@@ -37,7 +36,6 @@ export default function SignUpScreen() {
     try {
       await signUp.create({
         emailAddress,
-        password,
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -92,9 +90,9 @@ export default function SignUpScreen() {
                 size={40}
                 color="#8B7355"
               />
-              <ThemedText style={styles.title}>Verify Your Email</ThemedText>
+              <ThemedText style={styles.title}>Check Your Email</ThemedText>
               <ThemedText style={styles.subtitle}>
-                We&apos;ve sent a verification code to {emailAddress}
+                We&apos;ve sent a 6-digit code to {emailAddress}
               </ThemedText>
             </View>
 
@@ -110,7 +108,7 @@ export default function SignUpScreen() {
                 <TextInput
                   style={styles.input}
                   value={code}
-                  placeholder="Enter verification code"
+                  placeholder="Enter 6-digit code"
                   placeholderTextColor="#A69B8D"
                   onChangeText={setCode}
                   keyboardType="number-pad"
@@ -124,7 +122,7 @@ export default function SignUpScreen() {
                 disabled={isLoading}
               >
                 <ThemedText style={styles.buttonText}>
-                  {isLoading ? "Verifying..." : "Verify Email"}
+                  {isLoading ? "Creating account..." : "Create Account"}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -150,7 +148,7 @@ export default function SignUpScreen() {
             <Ionicons name="restaurant" size={40} color="#8B7355" />
             <ThemedText style={styles.title}>Create Account</ThemedText>
             <ThemedText style={styles.subtitle}>
-              Join our cooking community
+              Enter your email to get started
             </ThemedText>
           </View>
 
@@ -174,30 +172,13 @@ export default function SignUpScreen() {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color="#8B7355"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                value={password}
-                placeholder="Create a password"
-                placeholderTextColor="#A69B8D"
-                secureTextEntry={true}
-                onChangeText={setPassword}
-              />
-            </View>
-
             <TouchableOpacity
               style={[styles.button, isLoading && styles.buttonDisabled]}
               onPress={onSignUpPress}
               disabled={isLoading}
             >
               <ThemedText style={styles.buttonText}>
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isLoading ? "Sending code..." : "Send Code"}
               </ThemedText>
             </TouchableOpacity>
           </View>

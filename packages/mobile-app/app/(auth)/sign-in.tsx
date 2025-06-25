@@ -19,14 +19,15 @@ export default function Page() {
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
-  const [password, setPassword] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [pendingVerification, setPendingVerification] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
   // Handle the submission of the sign-in form
   const onSignInPress = async () => {
     if (!isLoaded) return;
-    if (!emailAddress || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!emailAddress) {
+      Alert.alert("Error", "Please enter your email address");
       return;
     }
 
@@ -35,7 +36,37 @@ export default function Page() {
     try {
       const signInAttempt = await signIn.create({
         identifier: emailAddress,
-        password,
+        strategy: "email_code",
+      });
+
+      if (signInAttempt.status === "needs_first_factor") {
+        setPendingVerification(true);
+      } else {
+        console.error(JSON.stringify(signInAttempt, null, 2));
+        Alert.alert("Error", "Sign in failed. Please try again.");
+      }
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+      Alert.alert("Error", "Sign in failed. Please check your email address.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle submission of verification form
+  const onVerifyPress = async () => {
+    if (!isLoaded) return;
+    if (!code) {
+      Alert.alert("Error", "Please enter the verification code");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const signInAttempt = await signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code,
       });
 
       if (signInAttempt.status === "complete") {
@@ -43,15 +74,76 @@ export default function Page() {
         router.replace("/");
       } else {
         console.error(JSON.stringify(signInAttempt, null, 2));
-        Alert.alert("Error", "Sign in failed. Please try again.");
+        Alert.alert("Error", "Verification failed. Please try again.");
       }
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
-      Alert.alert("Error", "Sign in failed. Please check your credentials.");
+      Alert.alert("Error", "Verification failed. Please check your code.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (pendingVerification) {
+    return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ThemedView style={styles.container}>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={40}
+                color="#8B7355"
+              />
+              <ThemedText style={styles.title}>Check Your Email</ThemedText>
+              <ThemedText style={styles.subtitle}>
+                We&apos;ve sent a 6-digit code to {emailAddress}
+              </ThemedText>
+            </View>
+
+            {/* Verification Form */}
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="key-outline"
+                  size={20}
+                  color="#8B7355"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={code}
+                  placeholder="Enter 6-digit code"
+                  placeholderTextColor="#A69B8D"
+                  onChangeText={setCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={onVerifyPress}
+                disabled={isLoading}
+              >
+                <ThemedText style={styles.buttonText}>
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <ThemedText style={styles.footerText}>
+                Didn&apos;t receive the code? Check your spam folder
+              </ThemedText>
+            </View>
+          </View>
+        </ThemedView>
+      </TouchableWithoutFeedback>
+    );
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -62,7 +154,7 @@ export default function Page() {
             <Ionicons name="restaurant" size={40} color="#8B7355" />
             <ThemedText style={styles.title}>Welcome Back</ThemedText>
             <ThemedText style={styles.subtitle}>
-              Sign in to your account
+              Enter your email to sign in
             </ThemedText>
           </View>
 
@@ -86,30 +178,13 @@ export default function Page() {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color="#8B7355"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                value={password}
-                placeholder="Enter your password"
-                placeholderTextColor="#A69B8D"
-                secureTextEntry={true}
-                onChangeText={setPassword}
-              />
-            </View>
-
             <TouchableOpacity
               style={[styles.button, isLoading && styles.buttonDisabled]}
               onPress={onSignInPress}
               disabled={isLoading}
             >
               <ThemedText style={styles.buttonText}>
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Sending code..." : "Send Code"}
               </ThemedText>
             </TouchableOpacity>
           </View>
