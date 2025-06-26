@@ -59,6 +59,8 @@ app.use("*", async (c, next) => {
     throw result.error;
   }
 
+  console.log("Authorization", c.req.header("Authorization"));
+
   const parsedEnv = result.data;
 
   try {
@@ -117,6 +119,8 @@ app.use(
 app.use("*", async (c, next) => {
   const session = c.get("clerkAuth")();
   const root = c.get("root");
+
+  console.log(session);
 
   if (!session || !session.userId) {
     c.set("user", null);

@@ -4,15 +4,16 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { SignOutButton } from "@/components/SignOutButton";
-import { useUser } from "@clerk/clerk-expo";
+import { useGetLoggedInUser } from "@/api/users";
 
 export default function Settings() {
-  const { user } = useUser();
+  const { data, isLoading } = useGetLoggedInUser();
 
   const settingsSections = [
     {
@@ -27,7 +28,7 @@ export default function Settings() {
         {
           icon: "mail-outline",
           title: "Email",
-          subtitle: user?.emailAddresses[0]?.emailAddress || "No email set",
+          subtitle: data?.user?.email || "No email set",
           action: "chevron-forward",
         },
       ],
@@ -98,55 +99,65 @@ export default function Settings() {
           <SignOutButton />
         </View>
 
-        {/* Settings Content */}
-        <ScrollView
-          style={styles.settingsList}
-          showsVerticalScrollIndicator={false}
-        >
-          {settingsSections.map((section, sectionIndex) => (
-            <View key={sectionIndex} style={styles.section}>
-              <ThemedText style={styles.sectionTitle}>
-                {section.title}
-              </ThemedText>
+        {/* Loading State */}
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#8B7355" />
+            <ThemedText style={styles.loadingText}>
+              Loading settings...
+            </ThemedText>
+          </View>
+        ) : (
+          /* Settings Content */
+          <ScrollView
+            style={styles.settingsList}
+            showsVerticalScrollIndicator={false}
+          >
+            {settingsSections.map((section, sectionIndex) => (
+              <View key={sectionIndex} style={styles.section}>
+                <ThemedText style={styles.sectionTitle}>
+                  {section.title}
+                </ThemedText>
 
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={styles.settingItem}
-                  onPress={() => {
-                    // Handle setting item press
-                    console.log(`Pressed: ${item.title}`);
-                  }}
-                >
-                  <View style={styles.settingIcon}>
-                    <Ionicons
-                      name={item.icon as any}
-                      size={24}
-                      color="#8B7355"
-                    />
-                  </View>
+                {section.items.map((item, itemIndex) => (
+                  <TouchableOpacity
+                    key={itemIndex}
+                    style={styles.settingItem}
+                    onPress={() => {
+                      // Handle setting item press
+                      console.log(`Pressed: ${item.title}`);
+                    }}
+                  >
+                    <View style={styles.settingIcon}>
+                      <Ionicons
+                        name={item.icon as any}
+                        size={24}
+                        color="#8B7355"
+                      />
+                    </View>
 
-                  <View style={styles.settingContent}>
-                    <ThemedText style={styles.settingTitle}>
-                      {item.title}
-                    </ThemedText>
-                    <ThemedText style={styles.settingSubtitle}>
-                      {item.subtitle}
-                    </ThemedText>
-                  </View>
+                    <View style={styles.settingContent}>
+                      <ThemedText style={styles.settingTitle}>
+                        {item.title}
+                      </ThemedText>
+                      <ThemedText style={styles.settingSubtitle}>
+                        {item.subtitle}
+                      </ThemedText>
+                    </View>
 
-                  <View style={styles.settingAction}>
-                    <Ionicons
-                      name={item.action as any}
-                      size={20}
-                      color="#8B7355"
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+                    <View style={styles.settingAction}>
+                      <Ionicons
+                        name={item.action as any}
+                        size={20}
+                        color="#8B7355"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -237,5 +248,17 @@ const styles = StyleSheet.create({
   },
   settingAction: {
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginTop: 16,
+    textAlign: "center",
   },
 });
