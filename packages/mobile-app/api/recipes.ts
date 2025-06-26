@@ -1,6 +1,10 @@
 import { useRouter } from "expo-router";
 import { client } from "./client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 
 export function useListRecipes() {
@@ -12,9 +16,9 @@ export function useListRecipes() {
     replace("/");
   }
 
-  const query = useQuery({
+  const query = useInfiniteQuery({
     queryKey: ["recipes"],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 1 }) => {
       const token = await getToken();
 
       if (!token) {
@@ -24,8 +28,8 @@ export function useListRecipes() {
       const response = await client.api.v1["recipes.listRecipes"].$get(
         {
           query: {
-            page: "1",
-            limit: "50",
+            page: pageParam.toString(),
+            limit: "20", // Smaller page size for better UX
           },
         },
         {
@@ -43,6 +47,14 @@ export function useListRecipes() {
 
       return recipes;
     },
+    getNextPageParam: (lastPage, allPages) => {
+      // If there are more recipes, return the next page number
+      if (lastPage.hasMore) {
+        return allPages.length + 1;
+      }
+      return undefined; // No more pages
+    },
+    initialPageParam: 1,
   });
 
   return query;

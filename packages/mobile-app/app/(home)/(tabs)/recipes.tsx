@@ -1,11 +1,11 @@
 import {
   StyleSheet,
   View,
-  ScrollView,
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -13,8 +13,18 @@ import { ThemedView } from "@/components/ThemedView";
 import { useListRecipes, useCreateRecipe } from "@/api/recipes";
 
 export default function Recipes() {
-  const { data, isLoading, error } = useListRecipes();
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useListRecipes();
   const createRecipeMutation = useCreateRecipe();
+
+  // Flatten all pages of recipes into a single array
+  const allRecipes = data?.pages.flatMap((page) => page.recipes || []) || [];
 
   // Helper function to format time in minutes to readable format
   const formatTime = (minutes: number) => {
@@ -63,6 +73,76 @@ export default function Recipes() {
     }
   };
 
+  // Handle loading more recipes
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
+  // Render individual recipe item
+  const renderRecipeItem = ({ item: recipe }: { item: any }) => (
+    <TouchableOpacity style={styles.recipeCard}>
+      <View style={styles.recipeContent}>
+        <View style={styles.recipeHeader}>
+          <ThemedText style={styles.recipeTitle}>
+            {getRecipeName(recipe)}
+          </ThemedText>
+        </View>
+
+        <ThemedText style={styles.recipeDescription}>
+          {getRecipeDescription(recipe)}
+        </ThemedText>
+
+        <View style={styles.recipeMeta}>
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={16} color="#8B7355" />
+            <ThemedText style={styles.metaText}>
+              {getTotalTime(recipe)}
+            </ThemedText>
+          </View>
+          {recipe.recentVersions && recipe.recentVersions.length > 0 && (
+            <View style={styles.metaItem}>
+              <Ionicons name="people-outline" size={16} color="#8B7355" />
+              <ThemedText style={styles.metaText}>
+                {recipe.recentVersions[0].servings} servings
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.recipeArrow}>
+        <Ionicons name="chevron-forward" size={20} color="#8B7355" />
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Render loading indicator for next page
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+
+    return (
+      <View style={styles.loadingMoreContainer}>
+        <ActivityIndicator size="small" color="#8B7355" />
+        <ThemedText style={styles.loadingMoreText}>
+          Loading more recipes...
+        </ThemedText>
+      </View>
+    );
+  };
+
+  // Render empty state
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="restaurant-outline" size={64} color="#8B7355" />
+      <ThemedText style={styles.emptyTitle}>No recipes yet</ThemedText>
+      <ThemedText style={styles.emptyText}>
+        Start by adding your first recipe!
+      </ThemedText>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -100,73 +180,19 @@ export default function Recipes() {
             </ThemedText>
           </View>
         ) : (
-          /* Recipe List */
-          <ScrollView
+          /* Recipe List with Infinite Scroll */
+          <FlatList
+            data={allRecipes}
+            renderItem={renderRecipeItem}
+            keyExtractor={(item) => item.id}
             style={styles.recipeList}
+            contentContainerStyle={styles.recipeListContent}
             showsVerticalScrollIndicator={false}
-          >
-            {data?.recipes && data.recipes.length > 0 ? (
-              data.recipes.map((recipe) => (
-                <TouchableOpacity key={recipe.id} style={styles.recipeCard}>
-                  <View style={styles.recipeContent}>
-                    <View style={styles.recipeHeader}>
-                      <ThemedText style={styles.recipeTitle}>
-                        {getRecipeName(recipe)}
-                      </ThemedText>
-                    </View>
-
-                    <ThemedText style={styles.recipeDescription}>
-                      {getRecipeDescription(recipe)}
-                    </ThemedText>
-
-                    <View style={styles.recipeMeta}>
-                      <View style={styles.metaItem}>
-                        <Ionicons
-                          name="time-outline"
-                          size={16}
-                          color="#8B7355"
-                        />
-                        <ThemedText style={styles.metaText}>
-                          {getTotalTime(recipe)}
-                        </ThemedText>
-                      </View>
-                      {recipe.recentVersions &&
-                        recipe.recentVersions.length > 0 && (
-                          <View style={styles.metaItem}>
-                            <Ionicons
-                              name="people-outline"
-                              size={16}
-                              color="#8B7355"
-                            />
-                            <ThemedText style={styles.metaText}>
-                              {recipe.recentVersions[0].servings} servings
-                            </ThemedText>
-                          </View>
-                        )}
-                    </View>
-                  </View>
-
-                  <View style={styles.recipeArrow}>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color="#8B7355"
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="restaurant-outline" size={64} color="#8B7355" />
-                <ThemedText style={styles.emptyTitle}>
-                  No recipes yet
-                </ThemedText>
-                <ThemedText style={styles.emptyText}>
-                  Start by adding your first recipe!
-                </ThemedText>
-              </View>
-            )}
-          </ScrollView>
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.1}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={renderEmptyState}
+          />
         )}
 
         {/* Add Recipe Button */}
@@ -369,5 +395,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  loadingMoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  loadingMoreText: {
+    color: "#8B7355",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  recipeListContent: {
+    paddingBottom: 16,
   },
 });
