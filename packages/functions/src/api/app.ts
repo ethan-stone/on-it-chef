@@ -1,6 +1,6 @@
 import { LambdaContext, LambdaEvent } from "hono/aws-lambda";
 import { ILogger } from "./logger";
-import { User, UserService } from "@on-it-chef/core/services/user";
+import { User, UserService } from "@on-it-chef/core/services/users";
 import { ContextVariableMap } from "hono";
 
 export type Root = {

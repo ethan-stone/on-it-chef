@@ -1,4 +1,4 @@
-import { UserService } from "@on-it-chef/core/services/user";
+import { UserService } from "@on-it-chef/core/services/users";
 import { MongoClient } from "@on-it-chef/core/services/db";
 import { Root } from "./app";
 import { Resource } from "sst";
