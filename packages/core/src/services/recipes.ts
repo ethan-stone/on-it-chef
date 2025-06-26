@@ -19,6 +19,14 @@ const RecipeVersion = z.object({
 
 export type RecipeVersion = z.infer<typeof RecipeVersion>;
 
+const MongoRecipeVersion = RecipeVersion.omit({
+  id: true,
+}).extend({
+  _id: z.string(),
+});
+
+type MongoRecipeVersion = z.infer<typeof MongoRecipeVersion>;
+
 const RecipePrompt = z.object({
   id: z.string(),
   recipeId: z.string(),
@@ -29,6 +37,14 @@ const RecipePrompt = z.object({
 });
 
 export type RecipePrompt = z.infer<typeof RecipePrompt>;
+
+const MongoRecipePrompt = RecipePrompt.omit({
+  id: true,
+}).extend({
+  _id: z.string(),
+});
+
+type MongoRecipePrompt = z.infer<typeof MongoRecipePrompt>;
 
 const Recipe = z.object({
   id: z.string(),
@@ -44,60 +60,57 @@ const Recipe = z.object({
 
 export type Recipe = z.infer<typeof Recipe>;
 
-type MongoRecipe = Omit<Recipe, "id" | "recentVersions"> & {
-  _id: string;
-  recentVersions: MongoRecipeVersion[];
-};
+const MongoRecipe = Recipe.omit({
+  id: true,
+  recentVersions: true,
+}).extend({
+  _id: z.string(),
+  recentVersions: z.array(MongoRecipeVersion),
+});
 
-type MongoRecipeVersion = Omit<RecipeVersion, "id"> & {
-  _id: string;
-};
-
-type MongoRecipePrompt = Omit<RecipePrompt, "id"> & {
-  _id: string;
-};
+type MongoRecipe = z.infer<typeof MongoRecipe>;
 
 const toMongo = {
   recipe: (recipe: Recipe): MongoRecipe => {
-    return {
+    return MongoRecipe.parse({
       ...recipe,
       recentVersions: recipe.recentVersions.map(toMongo.recipeVersion),
       _id: recipe.id,
-    };
+    });
   },
   recipeVersion: (recipeVersion: RecipeVersion): MongoRecipeVersion => {
-    return {
+    return MongoRecipeVersion.parse({
       ...recipeVersion,
       _id: recipeVersion.id,
-    };
+    });
   },
   recipePrompt: (recipePrompt: RecipePrompt): MongoRecipePrompt => {
-    return {
+    return MongoRecipePrompt.parse({
       ...recipePrompt,
       _id: recipePrompt.id,
-    };
+    });
   },
 };
 
 const fromMongo = {
   recipe: (mongoRecipe: MongoRecipe): Recipe => {
-    return {
+    return Recipe.parse({
       ...mongoRecipe,
       recentVersions: mongoRecipe.recentVersions.map(fromMongo.recipeVersion),
       id: mongoRecipe._id,
-    };
+    });
   },
   recipeVersion: (mongoRecipeVersion: MongoRecipeVersion): RecipeVersion => {
-    return {
+    return RecipeVersion.parse({
       ...mongoRecipeVersion,
       id: mongoRecipeVersion._id,
-    };
+    });
   },
   recipePrompt: (mongoRecipePrompt: MongoRecipePrompt): RecipePrompt => {
-    return {
+    return RecipePrompt.parse({
       ...mongoRecipePrompt,
       id: mongoRecipePrompt._id,
-    };
+    });
   },
 };
 
