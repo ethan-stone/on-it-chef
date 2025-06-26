@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Resource } from "sst";
 import { z } from "zod";
+import { RecipeVersion, RecipePrompt } from "@on-it-chef/core/services/recipes";
 
 const ai = new GoogleGenAI({ apiKey: Resource.GeminiApiKey.value });
 
@@ -72,6 +73,36 @@ Example response format:
   ]
 }`;
 
+const VERSION_UPDATE_PROMPT = `You are a professional chef and recipe creator. Your task is to generate an updated version of an existing recipe based on user feedback and previous versions.
+
+IMPORTANT: You must respond with ONLY valid JSON that exactly matches this schema:
+{
+  "generatedName": "string - A catchy, descriptive name for the updated recipe",
+  "version": number - The next version number,
+  "description": "string - A brief, appetizing description of the updated dish",
+  "prepTime": number - Preparation time in minutes,
+  "cookTime": number - Cooking time in minutes,
+  "servings": number - Number of servings this recipe makes,
+  "ingredients": ["string"] - Array of ingredients with measurements and preparation notes,
+  "instructions": ["string"] - Array of step-by-step cooking instructions
+}
+
+Guidelines:
+- Consider the user's feedback and previous versions when creating the new version
+- Maintain the core essence of the recipe while incorporating the requested changes
+- Be creative but practical with recipe names
+- Write clear, detailed descriptions that make the dish sound appealing
+- Provide accurate prep and cook times
+- Include all necessary ingredients with proper measurements
+- Write step-by-step instructions that are easy to follow
+- Ensure the recipe is realistic and achievable for home cooks
+- Make sure all times are in minutes
+- Keep ingredient lists and instructions concise but complete
+- Do not include any text outside the JSON structure
+
+Previous Recipe Versions Context:
+`;
+
 export async function generateRecipe(
   userPrompt: string
 ): Promise<AIRecipeResponse> {
@@ -109,6 +140,74 @@ Generate a recipe based on the user's request. Respond with ONLY the JSON object
     console.error("Error generating recipe:", error);
     throw new Error(
       `Failed to generate recipe: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function generateRecipeVersion(
+  userPrompt: string,
+  previousVersions: RecipeVersion[],
+  previousPrompts: RecipePrompt[]
+): Promise<AIRecipeResponse> {
+  // Build context from previous versions
+  const versionContext = previousVersions
+    .map((version, index) => {
+      const prompt = previousPrompts.find(
+        (p) => p.generatedVersion === version.id
+      );
+      return `
+Version ${version.version} (${
+        prompt ? `Prompt: "${prompt.message}"` : "No prompt available"
+      }):
+- Name: ${version.generatedName}
+- Description: ${version.description}
+- Prep Time: ${version.prepTime} minutes
+- Cook Time: ${version.cookTime} minutes
+- Servings: ${version.servings}
+- Ingredients: ${version.ingredients.join(", ")}
+- Instructions: ${version.instructions.join(" | ")}
+`;
+    })
+    .join("\n");
+
+  const nextVersion = previousVersions.length + 1;
+
+  const fullPrompt = `${VERSION_UPDATE_PROMPT}${versionContext}
+
+Current User Request: ${userPrompt}
+
+Generate version ${nextVersion} of this recipe based on the user's request and previous versions. Respond with ONLY the JSON object:`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: fullPrompt,
+    });
+    const text = result.text;
+
+    if (!text) {
+      throw new Error("No response from AI");
+    }
+
+    // Clean the response - remove any markdown formatting if present
+    let jsonText = text.trim();
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.replace(/^```json\n/, "").replace(/\n```$/, "");
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```\n/, "").replace(/\n```$/, "");
+    }
+
+    // Parse and validate the JSON response
+    const parsed = JSON.parse(jsonText);
+    const validated = AIRecipeResponse.parse(parsed);
+
+    return validated;
+  } catch (error) {
+    console.error("Error generating recipe version:", error);
+    throw new Error(
+      `Failed to generate recipe version: ${
         error instanceof Error ? error.message : "Unknown error"
       }`
     );

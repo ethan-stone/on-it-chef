@@ -153,14 +153,23 @@ export class RecipeService {
     const mongoRecipeVersion: MongoRecipeVersion = {
       _id: recipeVersionId,
       recipeId,
-      ...recipe.initialRecipeVersion,
+      userId: recipe.initialRecipeVersion.userId,
+      generatedName: recipe.initialRecipeVersion.generatedName,
+      description: recipe.initialRecipeVersion.description,
+      prepTime: recipe.initialRecipeVersion.prepTime,
+      cookTime: recipe.initialRecipeVersion.cookTime,
+      servings: recipe.initialRecipeVersion.servings,
+      ingredients: recipe.initialRecipeVersion.ingredients,
+      instructions: recipe.initialRecipeVersion.instructions,
+      version: recipe.initialRecipeVersion.version,
       createdAt: now,
     };
 
     const mongoRecipePrompt: MongoRecipePrompt = {
       _id: this.uid("recipe_prompt"),
       recipeId,
-      ...recipe.initialRecipePrompt,
+      userId: recipe.initialRecipeVersion.userId,
+      message: recipe.initialRecipePrompt.message,
       generatedVersion: mongoRecipeVersion._id,
       createdAt: now,
     };
@@ -220,6 +229,110 @@ export class RecipeService {
     return {
       hasMore: total > page * limit,
       recipes: mongoRecipes.map(fromMongo.recipe),
+    };
+  }
+
+  async createRecipeVersion(
+    recipeId: string,
+    userId: string,
+    newRecipeVersion: Omit<
+      RecipeVersion,
+      "id" | "recipeId" | "userId" | "version" | "createdAt"
+    >,
+    message: string
+  ): Promise<Recipe> {
+    // Get the current recipe to determine the next version number
+    const currentRecipe = await this.getRecipe(recipeId);
+    if (!currentRecipe) {
+      throw new Error("Recipe not found");
+    }
+
+    const nextVersion = currentRecipe.recentVersions.length + 1;
+    const recipeVersionId = this.uid("recipe_ver");
+    const now = new Date();
+
+    const mongoRecipeVersion: MongoRecipeVersion = {
+      _id: recipeVersionId,
+      recipeId,
+      userId,
+      generatedName: newRecipeVersion.generatedName,
+      description: newRecipeVersion.description,
+      prepTime: newRecipeVersion.prepTime,
+      cookTime: newRecipeVersion.cookTime,
+      servings: newRecipeVersion.servings,
+      ingredients: newRecipeVersion.ingredients,
+      instructions: newRecipeVersion.instructions,
+      version: nextVersion,
+      createdAt: now,
+    };
+
+    const mongoRecipePrompt: MongoRecipePrompt = {
+      _id: this.uid("recipe_prompt"),
+      recipeId,
+      userId,
+      message,
+      generatedVersion: mongoRecipeVersion._id,
+      createdAt: now,
+    };
+
+    const session = this.client.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // Insert the new recipe version
+        await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+
+        // Insert the new recipe prompt
+        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
+
+        // Update the recipe with the new version
+        await this.recipesColl.updateOne(
+          { _id: recipeId },
+          {
+            $push: { recentVersions: mongoRecipeVersion },
+            $set: { updatedAt: now },
+          }
+        );
+      });
+
+      // Return the updated recipe
+      return (await this.getRecipe(recipeId)) as Recipe;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async getRecipePrompts(recipeId: string): Promise<RecipePrompt[]> {
+    const mongoPrompts = await this.recipePromptsColl
+      .find({ recipeId })
+      .sort({ createdAt: 1 }) // Sort by creation date ascending
+      .toArray();
+
+    return mongoPrompts.map(fromMongo.recipePrompt);
+  }
+
+  async listRecipeVersions(
+    recipeId: string,
+    page: number,
+    limit: number
+  ): Promise<{
+    hasMore: boolean;
+    versions: RecipeVersion[];
+  }> {
+    const mongoVersions = await this.recipeVersionsColl
+      .find({ recipeId })
+      .sort({ version: -1 }) // Sort by version descending (newest first)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    const total = await this.recipeVersionsColl.countDocuments({ recipeId });
+
+    return {
+      hasMore: total > page * limit,
+      versions: mongoVersions.map(fromMongo.recipeVersion),
     };
   }
 }
