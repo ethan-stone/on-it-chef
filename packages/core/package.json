@@ -6,10 +6,7 @@
     "test": "sst shell vitest"
   },
   "exports": {
-    "./*": [
-      "./src/*/index.ts",
-      "./src/*.ts"
-    ]
+    "./*": "./src/*.ts"
   },
   "dependencies": {
     "mongodb": "^6.17.0",

@@ -13,6 +13,9 @@
     "@tsconfig/node22": "^22",
     "typescript": "^5"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
     "sst": "^3"
   }

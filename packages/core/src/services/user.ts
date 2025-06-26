@@ -5,7 +5,7 @@ import { z } from "zod";
 const User = z.object({
   id: z.string(),
   email: z.string(),
-  name: z.string(),
+  name: z.string().nullish(),
   dietaryRestrictions: z.string().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -53,6 +53,24 @@ export class UserService {
     await this.usersColl.insertOne(mongoUser);
 
     return fromMongo.user(mongoUser);
+  }
+  async getUser(id: string): Promise<User | null> {
+    const mongoUser = await this.usersColl.findOne({ _id: id });
+    return mongoUser ? fromMongo.user(mongoUser) : null;
+  }
+
+  async upsertUser(user: User): Promise<User> {
+    const mongoUser = toMongo.user(user);
+    await this.usersColl.updateOne(
+      { _id: user.id },
+      { $set: mongoUser },
+      { upsert: true }
+    );
+    return fromMongo.user(mongoUser);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.usersColl.deleteOne({ _id: userId });
   }
 
   async getDietaryRestrictions(

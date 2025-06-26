@@ -5,6 +5,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@/server/*": [
+        "../functions/src/api/*"
       ]
     }
   },

@@ -5,14 +5,30 @@
 
 declare module "sst" {
   export interface Resource {
-    "MyApi": {
+    "ApiFn": {
       "name": string
       "type": "sst.aws.Function"
       "url": string
     }
-    "MyBucket": {
-      "name": string
-      "type": "sst.aws.Bucket"
+    "ApiRouter": {
+      "type": "sst.aws.Router"
+      "url": string
+    }
+    "ClerkPublishableKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "ClerkSecretKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "ClerkWebhookSecret": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "MongoUrl": {
+      "type": "sst.sst.Secret"
+      "value": string
     }
   }
 }

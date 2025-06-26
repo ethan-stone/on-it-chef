@@ -1,7 +1,0 @@
-ignoredBuiltDependencies:
-  - aws-sdk
-
-nodeLinker: hoisted
-
-packages:
-  - packages/**/*
