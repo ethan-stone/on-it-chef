@@ -2,6 +2,7 @@ import { LambdaContext, LambdaEvent } from "hono/aws-lambda";
 import { ILogger } from "./logger";
 import { User, UserService } from "@on-it-chef/core/services/users";
 import { ContextVariableMap } from "hono";
+import { RecipeService } from "@on-it-chef/core/services/recipes";
 
 export type Root = {
   env: "development" | "production";
@@ -10,6 +11,7 @@ export type Root = {
   };
   services: {
     userService: UserService;
+    recipesService: RecipeService;
   };
 };
 

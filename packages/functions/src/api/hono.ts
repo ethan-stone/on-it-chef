@@ -12,6 +12,7 @@ import { clerkMiddleware } from "@hono/clerk-auth";
 import { GetLoggedInUser } from "./routes/get-user";
 import { init } from "./root";
 import { Resource } from "sst";
+import { ListRecipes } from "./routes/list-recipes";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -120,8 +121,6 @@ app.use("*", async (c, next) => {
   const session = c.get("clerkAuth")();
   const root = c.get("root");
 
-  console.log(session);
-
   if (!session || !session.userId) {
     c.set("user", null);
   } else {
@@ -135,7 +134,8 @@ app.use("*", async (c, next) => {
 
 const routes = app
   .openapi(ClerkWebhook.route, ClerkWebhook.handler)
-  .openapi(GetLoggedInUser.route, GetLoggedInUser.handler);
+  .openapi(GetLoggedInUser.route, GetLoggedInUser.handler)
+  .openapi(ListRecipes.route, ListRecipes.handler);
 
 export type Routes = typeof routes;
 

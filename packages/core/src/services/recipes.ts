@@ -174,4 +174,26 @@ export class RecipeService {
 
     return fromMongo.recipe(mongoRecipe);
   }
+
+  async listRecipes(
+    userId: string,
+    page: number,
+    limit: number
+  ): Promise<{
+    hasMore: boolean;
+    recipes: Recipe[];
+  }> {
+    const mongoRecipes = await this.recipesColl
+      .find({ userId })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    const total = await this.recipesColl.countDocuments({ userId });
+
+    return {
+      hasMore: total > page * limit,
+      recipes: mongoRecipes.map(fromMongo.recipe),
+    };
+  }
 }

@@ -4,56 +4,51 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-
-// Example recipe data
-const exampleRecipes = [
-  {
-    id: 1,
-    title: "Classic Margherita Pizza",
-    description: "Fresh mozzarella, basil, and tomato sauce on crispy crust",
-    cookTime: "25 min",
-    difficulty: "Easy",
-    rating: 4.8,
-  },
-  {
-    id: 2,
-    title: "Chicken Tikka Masala",
-    description: "Creamy, spiced chicken in rich tomato sauce",
-    cookTime: "45 min",
-    difficulty: "Medium",
-    rating: 4.9,
-  },
-  {
-    id: 3,
-    title: "Chocolate Chip Cookies",
-    description: "Soft and chewy cookies with chocolate chips",
-    cookTime: "20 min",
-    difficulty: "Easy",
-    rating: 4.7,
-  },
-  {
-    id: 4,
-    title: "Beef Stir Fry",
-    description: "Quick and flavorful beef with vegetables",
-    cookTime: "15 min",
-    difficulty: "Easy",
-    rating: 4.6,
-  },
-  {
-    id: 5,
-    title: "Caesar Salad",
-    description: "Fresh romaine with classic Caesar dressing",
-    cookTime: "10 min",
-    difficulty: "Easy",
-    rating: 4.5,
-  },
-];
+import { useListRecipes } from "@/api/recipes";
 
 export default function Recipes() {
+  const { data, isLoading, error } = useListRecipes();
+
+  // Helper function to format time in minutes to readable format
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours}h`;
+    }
+    return `${hours}h ${remainingMinutes}m`;
+  };
+
+  // Helper function to get recipe name
+  const getRecipeName = (recipe: any) => {
+    return recipe.userGivenName || recipe.generatedName;
+  };
+
+  // Helper function to get recipe description from the most recent version
+  const getRecipeDescription = (recipe: any) => {
+    if (recipe.recentVersions && recipe.recentVersions.length > 0) {
+      return recipe.recentVersions[0].description;
+    }
+    return "No description available";
+  };
+
+  // Helper function to get total time (prep + cook)
+  const getTotalTime = (recipe: any) => {
+    if (recipe.recentVersions && recipe.recentVersions.length > 0) {
+      const version = recipe.recentVersions[0];
+      return formatTime(version.prepTime + version.cookTime);
+    }
+    return "Time not available";
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
@@ -75,56 +70,90 @@ export default function Recipes() {
           </View>
         </View>
 
-        {/* Recipe List */}
-        <ScrollView
-          style={styles.recipeList}
-          showsVerticalScrollIndicator={false}
-        >
-          {exampleRecipes.map((recipe) => (
-            <TouchableOpacity key={recipe.id} style={styles.recipeCard}>
-              <View style={styles.recipeContent}>
-                <View style={styles.recipeHeader}>
-                  <ThemedText style={styles.recipeTitle}>
-                    {recipe.title}
-                  </ThemedText>
-                  <View style={styles.ratingContainer}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <ThemedText style={styles.ratingText}>
-                      {recipe.rating}
-                    </ThemedText>
-                  </View>
-                </View>
+        {/* Loading State */}
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#8B7355" />
+            <ThemedText style={styles.loadingText}>
+              Loading recipes...
+            </ThemedText>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#8B7355" />
+            <ThemedText style={styles.errorText}>
+              Failed to load recipes. Please try again.
+            </ThemedText>
+          </View>
+        ) : (
+          /* Recipe List */
+          <ScrollView
+            style={styles.recipeList}
+            showsVerticalScrollIndicator={false}
+          >
+            {data?.recipes && data.recipes.length > 0 ? (
+              data.recipes.map((recipe) => (
+                <TouchableOpacity key={recipe.id} style={styles.recipeCard}>
+                  <View style={styles.recipeContent}>
+                    <View style={styles.recipeHeader}>
+                      <ThemedText style={styles.recipeTitle}>
+                        {getRecipeName(recipe)}
+                      </ThemedText>
+                    </View>
 
-                <ThemedText style={styles.recipeDescription}>
-                  {recipe.description}
-                </ThemedText>
-
-                <View style={styles.recipeMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={16} color="#8B7355" />
-                    <ThemedText style={styles.metaText}>
-                      {recipe.cookTime}
+                    <ThemedText style={styles.recipeDescription}>
+                      {getRecipeDescription(recipe)}
                     </ThemedText>
+
+                    <View style={styles.recipeMeta}>
+                      <View style={styles.metaItem}>
+                        <Ionicons
+                          name="time-outline"
+                          size={16}
+                          color="#8B7355"
+                        />
+                        <ThemedText style={styles.metaText}>
+                          {getTotalTime(recipe)}
+                        </ThemedText>
+                      </View>
+                      {recipe.recentVersions &&
+                        recipe.recentVersions.length > 0 && (
+                          <View style={styles.metaItem}>
+                            <Ionicons
+                              name="people-outline"
+                              size={16}
+                              color="#8B7355"
+                            />
+                            <ThemedText style={styles.metaText}>
+                              {recipe.recentVersions[0].servings} servings
+                            </ThemedText>
+                          </View>
+                        )}
+                    </View>
                   </View>
-                  <View style={styles.metaItem}>
+
+                  <View style={styles.recipeArrow}>
                     <Ionicons
-                      name="trending-up-outline"
-                      size={16}
+                      name="chevron-forward"
+                      size={20}
                       color="#8B7355"
                     />
-                    <ThemedText style={styles.metaText}>
-                      {recipe.difficulty}
-                    </ThemedText>
                   </View>
-                </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="restaurant-outline" size={64} color="#8B7355" />
+                <ThemedText style={styles.emptyTitle}>
+                  No recipes yet
+                </ThemedText>
+                <ThemedText style={styles.emptyText}>
+                  Start by adding your first recipe!
+                </ThemedText>
               </View>
-
-              <View style={styles.recipeArrow}>
-                <Ionicons name="chevron-forward" size={20} color="#8B7355" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+            )}
+          </ScrollView>
+        )}
 
         {/* Add Recipe Button */}
         <View style={styles.addButtonContainer}>
@@ -185,6 +214,49 @@ const styles = StyleSheet.create({
     color: "#8B7355", // Medium brown text
     fontSize: 16,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#5D4E37",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#8B7355",
+    textAlign: "center",
+  },
   recipeList: {
     flex: 1,
     paddingHorizontal: 20,
@@ -220,17 +292,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#5D4E37", // Dark brown text
     flex: 1,
-    marginRight: 8,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  ratingText: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#8B7355", // Medium brown text
   },
   recipeDescription: {
     fontSize: 14,
