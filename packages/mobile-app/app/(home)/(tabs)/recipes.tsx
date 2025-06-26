@@ -23,10 +23,12 @@ import {
 import { useGetLoggedInUser } from "@/api/users";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Recipes() {
   const router = useRouter();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const {
     data,
     isLoading,
@@ -134,11 +136,28 @@ export default function Recipes() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            // Optimistic update - immediately remove from cache
+            queryClient.setQueryData(["recipes"], (oldData: any) => {
+              if (!oldData) return oldData;
+
+              return {
+                ...oldData,
+                pages: oldData.pages.map((page: any) => ({
+                  ...page,
+                  recipes: page.recipes.filter((r: any) => r.id !== recipe.id),
+                })),
+              };
+            });
+
+            // Show immediate success feedback
+            showToast("Recipe deleted successfully!", "success");
+
             try {
               await deleteRecipeMutation.mutateAsync(recipe.id);
-              showToast("Recipe deleted successfully!", "success");
             } catch (error) {
               console.error(error);
+              // Revert optimistic update on error
+              queryClient.invalidateQueries({ queryKey: ["recipes"] });
               showToast("Failed to delete recipe. Please try again.", "error");
             }
           },
