@@ -6,29 +6,29 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TextInput,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
   TouchableWithoutFeedback,
   Keyboard,
   FlatList,
   Modal,
+  Clipboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   useGenerateRecipeVersion,
   useListRecipeVersions,
   useListRecipePrompts,
 } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
+import { useToast } from "@/components/ToastContext";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const [selectedVersion, setSelectedVersion] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [newVersionMessage, setNewVersionMessage] = useState("");
@@ -44,26 +44,25 @@ export default function RecipeDetail() {
     isFetchingNextPage,
   } = useListRecipeVersions(id as string);
 
-  const {
-    data: promptsData,
-    isLoading: promptsLoading,
-    error: promptsError,
-  } = useListRecipePrompts(id as string);
+  const { data: promptsData } = useListRecipePrompts(id as string);
 
   const generateVersionMutation = useGenerateRecipeVersion();
   const { data: user } = useGetLoggedInUser();
 
   // Flatten all pages of versions into a single array
-  const allVersions =
-    versionsData?.pages.flatMap((page) => page.versions || []) || [];
+  const allVersions = useMemo(
+    () => versionsData?.pages.flatMap((page) => page.versions || []) || [],
+    [versionsData?.pages]
+  );
   const allPrompts = promptsData?.prompts || [];
 
   // Set the most recent version as default when data loads
   useEffect(() => {
-    if (allVersions.length > 0 && !selectedVersion) {
+    if (allVersions.length > 0) {
+      // Always select the first version (most recent) when data changes
       setSelectedVersion(allVersions[0]);
     }
-  }, [allVersions, selectedVersion]);
+  }, [allVersions]);
 
   // Find the prompt for the selected version
   const selectedPrompt = allPrompts.find(
@@ -89,6 +88,46 @@ export default function RecipeDetail() {
     });
   };
 
+  const generateMarkdown = (version: any) => {
+    if (!version) return "";
+
+    const markdown = `# ${version.generatedName}
+
+${version.description}
+
+## Recipe Details
+- **Prep Time:** ${formatTime(version.prepTime)}
+- **Cook Time:** ${formatTime(version.cookTime)}
+- **Total Time:** ${formatTime(version.prepTime + version.cookTime)}
+- **Servings:** ${version.servings}
+
+## Ingredients
+${version.ingredients.map((ingredient: string) => `- ${ingredient}`).join("\n")}
+
+## Instructions
+${version.instructions
+  .map((instruction: string, index: number) => `${index + 1}. ${instruction}`)
+  .join("\n")}
+
+---
+*Generated on ${formatDate(version.createdAt)}*`;
+
+    return markdown;
+  };
+
+  const handleCopyAsMarkdown = async () => {
+    if (!selectedVersion) return;
+
+    try {
+      const markdown = generateMarkdown(selectedVersion);
+      await Clipboard.setString(markdown);
+      showToast("Recipe copied as markdown!", "success");
+    } catch (error) {
+      console.error("Failed to copy recipe:", error);
+      showToast("Failed to copy recipe. Please try again.", "error");
+    }
+  };
+
   const handleGenerateVersion = async () => {
     setInputError("");
     if (!newVersionMessage.trim()) {
@@ -97,26 +136,27 @@ export default function RecipeDetail() {
     }
 
     try {
-      await generateVersionMutation.mutateAsync({
+      const updatedRecipe = await generateVersionMutation.mutateAsync({
         recipeId: id as string,
         message: newVersionMessage.trim(),
       });
       setModalVisible(false);
       setNewVersionMessage("");
-      Alert.alert("Success", "New recipe version generated successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Failed to generate new version. Please try again.");
-    }
-  };
 
-  const handleInputFocus = () => {
-    // Scroll to show the input field above the keyboard
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({
-        y: 400,
-        animated: true,
-      });
-    }, 100);
+      // Manually set the newest version from the response
+      if (
+        updatedRecipe.recentVersions &&
+        updatedRecipe.recentVersions.length > 0
+      ) {
+        console.log("Setting new version:", updatedRecipe.recentVersions[0]);
+        setSelectedVersion(updatedRecipe.recentVersions[0]);
+      }
+
+      showToast("New recipe version generated successfully!", "success");
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to generate new version. Please try again.", "error");
+    }
   };
 
   const handleLoadMoreVersions = () => {
@@ -255,10 +295,18 @@ export default function RecipeDetail() {
                   <ThemedText style={styles.recipeTitle}>
                     {selectedVersion.generatedName}
                   </ThemedText>
-                  <View style={styles.versionBadge}>
-                    <ThemedText style={styles.versionText}>
-                      v{selectedVersion.version}
-                    </ThemedText>
+                  <View style={styles.recipeHeaderActions}>
+                    <TouchableOpacity
+                      style={styles.copyButton}
+                      onPress={handleCopyAsMarkdown}
+                    >
+                      <Ionicons name="copy-outline" size={20} color="#8B7355" />
+                    </TouchableOpacity>
+                    <View style={styles.versionBadge}>
+                      <ThemedText style={styles.versionText}>
+                        v{selectedVersion.version}
+                      </ThemedText>
+                    </View>
                   </View>
                 </View>
                 <ThemedText style={styles.recipeDescription}>
@@ -468,13 +516,13 @@ export default function RecipeDetail() {
                       {generateVersionMutation.isPending ? (
                         <ActivityIndicator size="small" color="#F8F6F1" />
                       ) : (
-                        <Ionicons name="create" size={20} color="#F8F6F1" />
+                        <View style={styles.buttonContent}>
+                          <Ionicons name="create" size={20} color="#F8F6F1" />
+                          <ThemedText style={styles.createButtonText}>
+                            Generate
+                          </ThemedText>
+                        </View>
                       )}
-                      <ThemedText style={styles.createButtonText}>
-                        {generateVersionMutation.isPending
-                          ? "Generating..."
-                          : "Generate"}
-                      </ThemedText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -553,12 +601,19 @@ const styles = StyleSheet.create({
     color: "#5D4E37",
     flex: 1,
   },
+  recipeHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  copyButton: {
+    padding: 8,
+  },
   versionBadge: {
     backgroundColor: "#8B7355",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 12,
   },
   versionText: {
     color: "#F8F6F1",
@@ -592,6 +647,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
+    marginTop: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -865,6 +921,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     flex: 1,
+    minHeight: 48,
   },
   cancelButton: {
     backgroundColor: "#F8F6F1",
@@ -884,6 +941,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+    flexShrink: 1,
   },
   errorContainer: {
     flex: 1,
@@ -906,5 +964,10 @@ const styles = StyleSheet.create({
     color: "#8B7355",
     fontSize: 14,
     marginLeft: 8,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -9,6 +9,7 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { ToastProvider } from "@/components/ToastContext";
 import "react-native-reanimated";
 
 const queryClient = new QueryClient();
@@ -30,20 +31,22 @@ export default function RootLayout() {
         <ThemeProvider
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
-          <Stack>
-            <Stack.Screen
-              name="(home)"
-              options={{ headerShown: false, title: "Home" }}
-            />
-            <Stack.Screen
-              name="(auth)"
-              options={{ headerShown: false, title: "Auth" }}
-            />
-            <Stack.Screen
-              name="+not-found"
-              options={{ headerShown: false, title: "Not Found" }}
-            />
-          </Stack>
+          <ToastProvider>
+            <Stack>
+              <Stack.Screen
+                name="(home)"
+                options={{ headerShown: false, title: "Home" }}
+              />
+              <Stack.Screen
+                name="(auth)"
+                options={{ headerShown: false, title: "Auth" }}
+              />
+              <Stack.Screen
+                name="+not-found"
+                options={{ headerShown: false, title: "Not Found" }}
+              />
+            </Stack>
+          </ToastProvider>
         </ThemeProvider>
       </ClerkProvider>
     </QueryClientProvider>

@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -22,9 +22,11 @@ import {
 } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
 import { useRouter } from "expo-router";
+import { useToast } from "@/components/ToastContext";
 
 export default function Recipes() {
   const router = useRouter();
+  const { showToast } = useToast();
   const {
     data,
     isLoading,
@@ -39,6 +41,18 @@ export default function Recipes() {
   const [modalVisible, setModalVisible] = useState(false);
   const [recipeMessage, setRecipeMessage] = useState("");
   const [inputError, setInputError] = useState("");
+  const textInputRef = useRef<TextInput>(null);
+
+  // Auto-focus the text input when modal opens
+  useEffect(() => {
+    if (modalVisible) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modalVisible]);
 
   // Flatten all pages of recipes into a single array
   const allRecipes = data?.pages.flatMap((page) => page.recipes || []) || [];
@@ -86,15 +100,17 @@ export default function Recipes() {
       return;
     }
     try {
-      await createRecipeMutation.mutateAsync({
+      const newRecipe = await createRecipeMutation.mutateAsync({
         visibility: "private",
         message: recipeMessage.trim(),
       });
       setModalVisible(false);
       setRecipeMessage("");
-      Alert.alert("Success", "Recipe created successfully!");
+      // Navigate to the new recipe's detail page
+      router.push(`/recipe/${newRecipe.id}`);
     } catch (error) {
-      Alert.alert("Error", "Failed to create recipe. Please try again.");
+      console.error(error);
+      showToast("Failed to create recipe. Please try again.", "error");
     }
   };
 
@@ -116,12 +132,10 @@ export default function Recipes() {
           onPress: async () => {
             try {
               await deleteRecipeMutation.mutateAsync(recipe.id);
-              Alert.alert("Success", "Recipe deleted successfully!");
+              showToast("Recipe deleted successfully!", "success");
             } catch (error) {
-              Alert.alert(
-                "Error",
-                "Failed to delete recipe. Please try again."
-              );
+              console.error(error);
+              showToast("Failed to delete recipe. Please try again.", "error");
             }
           },
         },
@@ -294,6 +308,7 @@ export default function Recipes() {
           onRequestClose={() => {
             setModalVisible(false);
             setRecipeMessage("");
+            setInputError("");
           }}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -307,7 +322,11 @@ export default function Recipes() {
                       Create New Recipe
                     </ThemedText>
                     <TouchableOpacity
-                      onPress={() => setModalVisible(false)}
+                      onPress={() => {
+                        setModalVisible(false);
+                        setRecipeMessage("");
+                        setInputError("");
+                      }}
                       style={styles.closeButton}
                     >
                       <Ionicons name="close" size={24} color="#8B7355" />
@@ -325,11 +344,28 @@ export default function Recipes() {
                       placeholder="e.g., A spicy chicken curry with coconut milk and fresh herbs"
                       placeholderTextColor="#A69B8D"
                       value={recipeMessage}
-                      onChangeText={setRecipeMessage}
+                      onChangeText={(text) => {
+                        setRecipeMessage(text);
+                        if (inputError) setInputError("");
+                      }}
                       multiline
                       numberOfLines={4}
                       textAlignVertical="top"
+                      ref={textInputRef}
                     />
+
+                    {inputError ? (
+                      <View style={styles.errorMessageContainer}>
+                        <Ionicons
+                          name="alert-circle"
+                          size={16}
+                          color="#D32F2F"
+                        />
+                        <ThemedText style={styles.errorMessageText}>
+                          {inputError}
+                        </ThemedText>
+                      </View>
+                    ) : null}
 
                     {user?.dietaryRestrictions && (
                       <View style={styles.dietaryNote}>
@@ -357,6 +393,7 @@ export default function Recipes() {
                       onPress={() => {
                         setModalVisible(false);
                         setRecipeMessage("");
+                        setInputError("");
                       }}
                     >
                       <ThemedText style={styles.cancelButtonText}>
@@ -592,9 +629,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingTop: 100,
   },
   modalContainer: {
     backgroundColor: "#FFFFFF",
@@ -602,7 +640,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "100%",
     maxWidth: 400,
-    maxHeight: "80%",
+    maxHeight: "70%",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -700,6 +738,16 @@ const styles = StyleSheet.create({
   dietaryNoteText: {
     marginLeft: 8,
     color: "#8B7355",
+    fontSize: 14,
+  },
+  errorMessageContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  errorMessageText: {
+    marginLeft: 8,
+    color: "#D32F2F",
     fontSize: 14,
   },
 });

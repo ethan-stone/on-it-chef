@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TextInput,
-  Alert,
   Modal,
   TouchableWithoutFeedback,
   Keyboard,
@@ -16,6 +15,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useGetLoggedInUser, useUpdateUserSettings } from "@/api/users";
+import { useToast } from "@/components/ToastContext";
 import { useState, useEffect } from "react";
 import React from "react";
 
@@ -35,6 +35,7 @@ type SettingsSection = {
 
 export default function Settings() {
   const { data: user, isLoading } = useGetLoggedInUser();
+  const { showToast } = useToast();
   const updateSettingsMutation = useUpdateUserSettings();
   const [dietaryRestrictions, setDietaryRestrictions] = useState(
     user?.dietaryRestrictions || ""
@@ -55,11 +56,11 @@ export default function Settings() {
         dietaryRestrictions: editValue.trim() || undefined,
       });
       setModalVisible(false);
-      Alert.alert("Success", "Dietary restrictions updated successfully!");
+      showToast("Dietary restrictions updated successfully!", "success");
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "Failed to update dietary restrictions. Please try again."
+      showToast(
+        "Failed to update dietary restrictions. Please try again.",
+        "error"
       );
     }
   };

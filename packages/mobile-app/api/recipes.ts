@@ -151,9 +151,16 @@ export function useGenerateRecipeVersion() {
 
       return recipe;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Invalidate and refetch recipes list
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      // Invalidate the specific recipe versions and prompts
+      queryClient.invalidateQueries({
+        queryKey: ["recipe-versions", variables.recipeId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["recipe-prompts", variables.recipeId],
+      });
     },
   });
 
