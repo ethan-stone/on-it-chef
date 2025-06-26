@@ -16,8 +16,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useListRecipes, useCreateRecipe } from "@/api/recipes";
+import { useRouter } from "expo-router";
 
 export default function Recipes() {
+  const router = useRouter();
   const {
     data,
     isLoading,
@@ -98,7 +100,10 @@ export default function Recipes() {
 
   // Render individual recipe item
   const renderRecipeItem = ({ item: recipe }: { item: any }) => (
-    <TouchableOpacity style={styles.recipeCard}>
+    <TouchableOpacity
+      style={styles.recipeCard}
+      onPress={() => router.push(`/recipe/${recipe.id}`)}
+    >
       <View style={styles.recipeContent}>
         <View style={styles.recipeHeader}>
           <ThemedText style={styles.recipeTitle}>
