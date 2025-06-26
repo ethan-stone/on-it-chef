@@ -2,15 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "./client";
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 
 export function useGetLoggedInUser() {
   const { replace } = useRouter();
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const query = useQuery({
     queryKey: ["user"],
@@ -38,6 +41,7 @@ export function useGetLoggedInUser() {
 
       return user;
     },
+    enabled: isLoaded && !!userId,
   });
 
   return query;
@@ -49,9 +53,11 @@ export function useUpdateUserSettings() {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const mutation = useMutation({
     mutationFn: async (data: { dietaryRestrictions?: string }) => {

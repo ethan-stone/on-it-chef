@@ -7,15 +7,18 @@ import {
   useQuery,
 } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
+import { useEffect } from "react";
 
 export function useListRecipes() {
   const { replace } = useRouter();
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const query = useInfiniteQuery({
     queryKey: ["recipes"],
@@ -56,6 +59,7 @@ export function useListRecipes() {
       return undefined; // No more pages
     },
     initialPageParam: 1,
+    enabled: isLoaded && !!userId,
   });
 
   return query;
@@ -67,9 +71,11 @@ export function useCreateRecipe() {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const mutation = useMutation({
     mutationFn: async (data: {
@@ -118,9 +124,11 @@ export function useGenerateRecipeVersion() {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const mutation = useMutation({
     mutationFn: async (data: { recipeId: string; message: string }) => {
@@ -172,9 +180,11 @@ export function useListRecipeVersions(recipeId: string) {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const query = useInfiniteQuery({
     queryKey: ["recipe-versions", recipeId],
@@ -216,6 +226,7 @@ export function useListRecipeVersions(recipeId: string) {
       return undefined; // No more pages
     },
     initialPageParam: 1,
+    enabled: isLoaded && !!userId,
   });
 
   return query;
@@ -227,9 +238,11 @@ export function useDeleteRecipe() {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const mutation = useMutation({
     mutationFn: async (recipeId: string) => {
@@ -272,9 +285,11 @@ export function useListRecipePrompts(recipeId: string) {
 
   const { isLoaded, userId, getToken } = useAuth();
 
-  if (isLoaded && !userId) {
-    replace("/");
-  }
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
 
   const query = useQuery({
     queryKey: ["recipe-prompts", recipeId],
@@ -306,6 +321,7 @@ export function useListRecipePrompts(recipeId: string) {
 
       return prompts;
     },
+    enabled: isLoaded && !!userId,
   });
 
   return query;
