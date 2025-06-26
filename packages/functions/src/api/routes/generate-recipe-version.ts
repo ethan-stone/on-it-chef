@@ -106,7 +106,9 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       message,
       currentRecipe.recentVersions,
       previousPrompts,
-      user.dietaryRestrictions
+      currentRecipe.includeDietaryRestrictions
+        ? user.dietaryRestrictions || undefined
+        : undefined
     );
 
     // Create the new recipe version
@@ -123,7 +125,10 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
           ingredients: aiRecipe.ingredients,
           instructions: aiRecipe.instructions,
         },
-        message
+        message,
+        currentRecipe.includeDietaryRestrictions
+          ? user.dietaryRestrictions || undefined
+          : undefined
       );
 
     logger.info(

@@ -54,6 +54,7 @@ const Recipe = z.object({
   userId: z.string(),
   visibility: z.enum(["public", "private"]),
   dietaryRestrictions: z.string().nullish(),
+  includeDietaryRestrictions: z.boolean().default(true),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -66,6 +67,7 @@ const MongoRecipe = Recipe.omit({
 }).extend({
   _id: z.string(),
   recentVersions: z.array(MongoRecipeVersion),
+  includeDietaryRestrictions: z.boolean().default(true),
 });
 
 type MongoRecipe = z.infer<typeof MongoRecipe>;
@@ -139,6 +141,7 @@ export class RecipeService {
   async createRecipe(recipe: {
     dietaryRestrictions: Recipe["dietaryRestrictions"];
     visibility: Recipe["visibility"];
+    includeDietaryRestrictions: boolean;
     initialRecipeVersion: Omit<RecipeVersion, "id" | "recipeId">;
     initialRecipePrompt: Omit<
       RecipePrompt,
@@ -180,6 +183,7 @@ export class RecipeService {
       generatedName: recipe.initialRecipeVersion.generatedName,
       visibility: recipe.visibility,
       dietaryRestrictions: recipe.dietaryRestrictions,
+      includeDietaryRestrictions: recipe.includeDietaryRestrictions,
       recentVersions: [mongoRecipeVersion],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -239,7 +243,8 @@ export class RecipeService {
       RecipeVersion,
       "id" | "recipeId" | "userId" | "version" | "createdAt"
     >,
-    message: string
+    message: string,
+    dietaryRestrictions?: string
   ): Promise<Recipe> {
     // Get the current recipe to determine the next version number
     const currentRecipe = await this.getRecipe(recipeId);
