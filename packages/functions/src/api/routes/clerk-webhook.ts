@@ -1,7 +1,8 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { errorResponseSchemas, HTTPException } from "../errors";
 import { HonoEnv } from "../app";
-import { verifyWebhook } from "@clerk/backend/webhooks";
+import { WebhookEvent } from "@clerk/backend/webhooks";
+import { Webhook } from "svix";
 
 const route = createRoute({
   operationId: "clerkWebhook",
@@ -39,10 +40,38 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   logger.info("Received clerk webhook");
 
-  try {
-    const evt = await verifyWebhook(c.req.raw, {
-      signingSecret: root.secrets.clerkWebhookSecret,
+  const svixId = c.req.header("svix-id");
+  const svixTimestamp = c.req.header("svix-timestamp");
+  const svixSignature = c.req.header("svix-signature");
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    throw new HTTPException({
+      reason: "BAD_REQUEST",
+      message: "Missing required headers",
     });
+  }
+
+  try {
+    const headers = {
+      "svix-id": svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    };
+
+    const payload = c.env.event.body;
+
+    if (!payload) {
+      throw new HTTPException({
+        reason: "BAD_REQUEST",
+        message: "Missing payload",
+      });
+    }
+
+    const wh = new Webhook(root.secrets.clerkWebhookSecret);
+
+    wh.verify(payload, headers);
+
+    const evt = (await c.req.json()) as WebhookEvent;
 
     logger.info("Verified clerk webhook");
 
@@ -77,7 +106,6 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     return c.json({ message: "Webhook received" }, 200);
   } catch (error) {
-    console.log(error);
     if (error instanceof HTTPException) {
       throw error;
     }

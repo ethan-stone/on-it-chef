@@ -1,4 +1,4 @@
-import { LambdaEvent } from "hono/aws-lambda";
+import { LambdaContext, LambdaEvent } from "hono/aws-lambda";
 import { ILogger } from "./logger";
 import { User, UserService } from "@on-it-chef/core/services/user";
 import { ContextVariableMap } from "hono";
@@ -16,6 +16,7 @@ export type Root = {
 export type HonoEnv = {
   Bindings: {
     event: LambdaEvent;
+    lambdaContext: LambdaContext;
   };
   Variables: {
     reqId: string;

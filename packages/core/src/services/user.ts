@@ -11,27 +11,31 @@ const User = z.object({
   updatedAt: z.date(),
 });
 
+const MongoUser = User.omit({
+  id: true,
+}).extend({
+  _id: z.string(),
+});
+
 export type User = z.infer<typeof User>;
 
-type MongoUser = Omit<User, "id"> & {
-  _id: string;
-};
+export type MongoUser = z.infer<typeof MongoUser>;
 
 const toMongo = {
   user: (user: User): MongoUser => {
-    return {
+    return MongoUser.parse({
       ...user,
       _id: user.id,
-    };
+    });
   },
 };
 
 const fromMongo = {
   user: (mongoUser: MongoUser): User => {
-    return {
+    return User.parse({
       ...mongoUser,
       id: mongoUser._id,
-    };
+    });
   },
 };
 
