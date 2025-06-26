@@ -218,7 +218,6 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       dietaryRestrictions: dietaryRestrictions || null,
       visibility: visibility,
       initialRecipeVersion: {
-        recipeId: "", // Will be set by the service
         userId: user.id,
         generatedName: randomRecipe.name,
         version: 1,

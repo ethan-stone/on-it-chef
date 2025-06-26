@@ -122,7 +122,7 @@ export class RecipeService {
   async createRecipe(recipe: {
     dietaryRestrictions: Recipe["dietaryRestrictions"];
     visibility: Recipe["visibility"];
-    initialRecipeVersion: Omit<RecipeVersion, "id">;
+    initialRecipeVersion: Omit<RecipeVersion, "id" | "recipeId">;
   }): Promise<Recipe> {
     const recipeId = this.uid("recipe");
     const recipeVersionId = this.uid("recipe_ver");
@@ -131,6 +131,7 @@ export class RecipeService {
 
     const mongoRecipeVersion: MongoRecipeVersion = {
       _id: recipeVersionId,
+      recipeId,
       ...recipe.initialRecipeVersion,
       createdAt: now,
     };
@@ -141,12 +142,7 @@ export class RecipeService {
       generatedName: recipe.initialRecipeVersion.generatedName,
       visibility: recipe.visibility,
       dietaryRestrictions: recipe.dietaryRestrictions,
-      recentVersions: [
-        {
-          _id: recipeVersionId,
-          ...recipe.initialRecipeVersion,
-        },
-      ],
+      recentVersions: [mongoRecipeVersion],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
