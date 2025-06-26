@@ -34,6 +34,7 @@ export default function RecipeDetail() {
   const [newVersionMessage, setNewVersionMessage] = useState("");
   const [inputError, setInputError] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
+  const newVersionInputRef = useRef<TextInput>(null);
 
   const {
     data: versionsData,
@@ -68,6 +69,17 @@ export default function RecipeDetail() {
   const selectedPrompt = allPrompts.find(
     (prompt: any) => prompt.generatedVersion === selectedVersion?.id
   );
+
+  // Auto-focus the text input when modal opens
+  useEffect(() => {
+    if (modalVisible) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        newVersionInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modalVisible]);
 
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -468,6 +480,7 @@ ${version.instructions
                       multiline
                       numberOfLines={4}
                       textAlignVertical="top"
+                      ref={newVersionInputRef}
                     />
 
                     {user?.dietaryRestrictions && (
@@ -488,11 +501,7 @@ ${version.instructions
                       <ThemedText style={styles.errorText}>
                         {inputError}
                       </ThemedText>
-                    ) : (
-                      <ThemedText style={styles.modalHint}>
-                        Be specific about what you want to change!
-                      </ThemedText>
-                    )}
+                    ) : null}
                   </View>
 
                   {/* Modal Actions */}
@@ -841,9 +850,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 20,
+    paddingTop: 100,
   },
   modalContainer: {
     backgroundColor: "#FFFFFF",
@@ -851,7 +861,6 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "100%",
     maxWidth: 400,
-    maxHeight: "80%",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -883,7 +892,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F6F1",
   },
   modalContent: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   modalSubtitle: {
     fontSize: 16,

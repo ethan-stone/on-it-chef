@@ -16,7 +16,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useGetLoggedInUser, useUpdateUserSettings } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 
 type SettingItem = {
@@ -42,6 +42,7 @@ export default function Settings() {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const editInputRef = useRef<TextInput>(null);
 
   // Update local state when user data changes
   useEffect(() => {
@@ -50,14 +51,32 @@ export default function Settings() {
     }
   }, [user?.dietaryRestrictions]);
 
+  // Auto-focus the text input when modal opens
+  useEffect(() => {
+    if (modalVisible) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        editInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [modalVisible]);
+
   const handleSaveDietaryRestrictions = async () => {
+    const newValue = editValue.trim() || undefined;
+
+    // Optimistic update - immediately update local state and close modal
+    setDietaryRestrictions(newValue || "");
+    setModalVisible(false);
+
     try {
       await updateSettingsMutation.mutateAsync({
-        dietaryRestrictions: editValue.trim() || undefined,
+        dietaryRestrictions: newValue,
       });
-      setModalVisible(false);
       showToast("Dietary restrictions updated successfully!", "success");
     } catch (error) {
+      // Revert optimistic update on error
+      setDietaryRestrictions(user?.dietaryRestrictions || "");
       showToast(
         "Failed to update dietary restrictions. Please try again.",
         "error"
@@ -233,6 +252,7 @@ export default function Settings() {
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
+                ref={editInputRef}
               />
               <TouchableOpacity
                 style={styles.modalSaveButton}
@@ -349,8 +369,9 @@ const styles = StyleSheet.create({
   modalBackground: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "center",
+    paddingTop: 160,
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
