@@ -12,92 +12,61 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   FlatList,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState, useRef } from "react";
-import { useGenerateRecipeVersion, useListRecipeVersions } from "@/api/recipes";
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  useGenerateRecipeVersion,
+  useListRecipeVersions,
+  useListRecipePrompts,
+} from "@/api/recipes";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [newMessage, setNewMessage] = useState("");
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null); // Track selected version
-  const generateVersionMutation = useGenerateRecipeVersion();
+  const [selectedVersion, setSelectedVersion] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newVersionMessage, setNewVersionMessage] = useState("");
+  const [inputError, setInputError] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch recipe versions
   const {
     data: versionsData,
-    isLoading: isLoadingVersions,
+    isLoading: versionsLoading,
     error: versionsError,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useListRecipeVersions(id as string);
 
+  const {
+    data: promptsData,
+    isLoading: promptsLoading,
+    error: promptsError,
+  } = useListRecipePrompts(id as string);
+
+  const generateVersionMutation = useGenerateRecipeVersion();
+
   // Flatten all pages of versions into a single array
   const allVersions =
     versionsData?.pages.flatMap((page) => page.versions || []) || [];
+  const allPrompts = promptsData?.prompts || [];
 
-  // Set the selected version to the most recent when versions load
-  React.useEffect(() => {
-    if (allVersions.length > 0 && selectedVersion === null) {
-      const mostRecentVersion = Math.max(...allVersions.map((v) => v.version));
-      setSelectedVersion(mostRecentVersion);
+  // Set the most recent version as default when data loads
+  useEffect(() => {
+    if (allVersions.length > 0 && !selectedVersion) {
+      setSelectedVersion(allVersions[0]);
     }
   }, [allVersions, selectedVersion]);
 
-  // TODO: Replace with actual API call to get recipe by ID
-  const isLoadingRecipe = false;
-  const recipe = {
-    id: id as string,
-    userGivenName: "Spicy Chicken Curry",
-    generatedName: "Spicy Chicken Curry with Coconut Milk",
-    recentVersions: [
-      {
-        id: "version_1",
-        version: 1,
-        generatedName: "Spicy Chicken Curry with Coconut Milk",
-        description:
-          "A flavorful chicken curry with aromatic spices and creamy coconut milk",
-        prepTime: 20,
-        cookTime: 45,
-        servings: 4,
-        ingredients: [
-          "2 lbs chicken breast, cubed",
-          "1 can coconut milk",
-          "2 tbsp curry powder",
-          "1 onion, diced",
-          "3 cloves garlic, minced",
-        ],
-        instructions: [
-          "Heat oil in a large pot over medium heat",
-          "Add diced onion and cook until translucent",
-          "Add garlic and ginger, cook for 1 minute",
-          "Add chicken and cook until browned",
-        ],
-        createdAt: new Date(),
-      },
-    ],
-    prompts: [
-      {
-        id: "prompt_1",
-        message:
-          "Create a spicy chicken curry recipe with coconut milk and aromatic spices",
-        createdAt: new Date(),
-      },
-    ],
-  };
-
-  // Use the selected version from the API data, or fall back to mock data
-  const currentVersion =
-    allVersions.find((v) => v.version === selectedVersion) ||
-    recipe.recentVersions[0];
-  const originalPrompt = recipe.prompts[0];
+  // Find the prompt for the selected version
+  const selectedPrompt = allPrompts.find(
+    (prompt: any) => prompt.generatedVersion === selectedVersion?.id
+  );
 
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -118,32 +87,31 @@ export default function RecipeDetail() {
     });
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim()) {
-      Alert.alert("Error", "Please enter a message");
+  const handleGenerateVersion = async () => {
+    setInputError("");
+    if (!newVersionMessage.trim()) {
+      setInputError("Please describe the changes you want to make.");
       return;
     }
 
     try {
       await generateVersionMutation.mutateAsync({
         recipeId: id as string,
-        message: newMessage.trim(),
+        message: newVersionMessage.trim(),
       });
-      setNewMessage("");
-      Alert.alert("Success", "New recipe version generated!");
+      setModalVisible(false);
+      setNewVersionMessage("");
+      Alert.alert("Success", "New recipe version generated successfully!");
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "Failed to generate recipe version. Please try again."
-      );
+      Alert.alert("Error", "Failed to generate new version. Please try again.");
     }
   };
 
   const handleInputFocus = () => {
-    // Scroll to show the input field without going too far
+    // Scroll to show the input field above the keyboard
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({
-        y: 800, // Adjust this value based on content height
+        y: 400,
         animated: true,
       });
     }, 100);
@@ -160,9 +128,9 @@ export default function RecipeDetail() {
     <TouchableOpacity
       style={[
         styles.versionItem,
-        selectedVersion === version.version && styles.selectedVersionItem,
+        selectedVersion?.id === version.id && styles.selectedVersionItem,
       ]}
-      onPress={() => setSelectedVersion(version.version)}
+      onPress={() => setSelectedVersion(version)}
     >
       <View style={styles.versionItemHeader}>
         <ThemedText style={styles.versionNumber}>v{version.version}</ThemedText>
@@ -179,23 +147,38 @@ export default function RecipeDetail() {
     </TouchableOpacity>
   );
 
-  if (isLoadingRecipe) {
+  if (versionsLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B7355" />
-          <ThemedText style={styles.loadingText}>Loading recipe...</ThemedText>
+        <ThemedView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#8B7355" />
+            <ThemedText style={styles.loadingText}>
+              Loading recipe...
+            </ThemedText>
+          </View>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
+
+  if (versionsError || allVersions.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ThemedView style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#8B7355" />
+            <ThemedText style={styles.errorText}>
+              Failed to load recipe. Please try again.
+            </ThemedText>
+          </View>
         </ThemedView>
       </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.safeArea}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
-    >
+    <SafeAreaView style={styles.safeArea}>
       <ThemedView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -206,7 +189,7 @@ export default function RecipeDetail() {
             <Ionicons name="arrow-back" size={24} color="#8B7355" />
           </TouchableOpacity>
           <ThemedText style={styles.headerTitle}>
-            {recipe.userGivenName || recipe.generatedName}
+            {selectedVersion?.generatedName || "Recipe"}
           </ThemedText>
           <TouchableOpacity style={styles.historyButton}>
             <Ionicons name="time-outline" size={24} color="#8B7355" />
@@ -229,7 +212,7 @@ export default function RecipeDetail() {
                   Version History
                 </ThemedText>
               </View>
-              {isLoadingVersions ? (
+              {versionsLoading ? (
                 <View style={styles.loadingVersionsContainer}>
                   <ActivityIndicator size="small" color="#8B7355" />
                   <ThemedText style={styles.loadingVersionsText}>
@@ -264,37 +247,39 @@ export default function RecipeDetail() {
             </View>
 
             {/* Current Version Info */}
-            <View style={styles.recipeInfoCard}>
-              <View style={styles.recipeHeader}>
-                <ThemedText style={styles.recipeTitle}>
-                  {currentVersion.generatedName}
+            {selectedVersion && (
+              <View style={styles.recipeCard}>
+                <View style={styles.recipeHeader}>
+                  <ThemedText style={styles.recipeTitle}>
+                    {selectedVersion.generatedName}
+                  </ThemedText>
+                  <View style={styles.versionBadge}>
+                    <ThemedText style={styles.versionText}>
+                      v{selectedVersion.version}
+                    </ThemedText>
+                  </View>
+                </View>
+                <ThemedText style={styles.recipeDescription}>
+                  {selectedVersion.description}
                 </ThemedText>
-                <View style={styles.versionBadge}>
-                  <ThemedText style={styles.versionText}>
-                    v{currentVersion.version}
-                  </ThemedText>
+                <View style={styles.recipeMeta}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="time-outline" size={16} color="#8B7355" />
+                    <ThemedText style={styles.metaText}>
+                      {formatTime(
+                        selectedVersion.prepTime + selectedVersion.cookTime
+                      )}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="people-outline" size={16} color="#8B7355" />
+                    <ThemedText style={styles.metaText}>
+                      {selectedVersion.servings} servings
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
-              <ThemedText style={styles.recipeDescription}>
-                {currentVersion.description}
-              </ThemedText>
-              <View style={styles.recipeMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={16} color="#8B7355" />
-                  <ThemedText style={styles.metaText}>
-                    {formatTime(
-                      currentVersion.prepTime + currentVersion.cookTime
-                    )}
-                  </ThemedText>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={16} color="#8B7355" />
-                  <ThemedText style={styles.metaText}>
-                    {currentVersion.servings} servings
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
+            )}
 
             {/* Ingredients */}
             <View style={styles.section}>
@@ -303,7 +288,7 @@ export default function RecipeDetail() {
                 <ThemedText style={styles.sectionTitle}>Ingredients</ThemedText>
               </View>
               <View style={styles.ingredientsList}>
-                {currentVersion.ingredients.map(
+                {selectedVersion?.ingredients.map(
                   (ingredient: string, index: number) => (
                     <View key={index} style={styles.ingredientItem}>
                       <View style={styles.ingredientBullet} />
@@ -325,7 +310,7 @@ export default function RecipeDetail() {
                 </ThemedText>
               </View>
               <View style={styles.instructionsList}>
-                {currentVersion.instructions.map(
+                {selectedVersion?.instructions.map(
                   (instruction: string, index: number) => (
                     <View key={index} style={styles.instructionItem}>
                       <View style={styles.instructionNumber}>
@@ -343,66 +328,146 @@ export default function RecipeDetail() {
             </View>
 
             {/* Original Prompt */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="chatbubble-outline" size={20} color="#8B7355" />
-                <ThemedText style={styles.sectionTitle}>
-                  Original Prompt
-                </ThemedText>
-              </View>
-              <View style={styles.promptCard}>
-                <ThemedText style={styles.promptText}>
-                  &ldquo;{originalPrompt.message}&rdquo;
-                </ThemedText>
-              </View>
-            </View>
-
-            {/* Generate New Version */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="add-circle-outline" size={20} color="#8B7355" />
-                <ThemedText style={styles.sectionTitle}>
-                  Generate New Version
-                </ThemedText>
-              </View>
-              <View style={styles.generateCard}>
-                <TextInput
-                  style={styles.messageInput}
-                  placeholder="Describe how you'd like to modify this recipe..."
-                  placeholderTextColor="#A69B8D"
-                  value={newMessage}
-                  onChangeText={setNewMessage}
-                  onFocus={handleInputFocus}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.generateButton,
-                    generateVersionMutation.isPending &&
-                      styles.generateButtonDisabled,
-                  ]}
-                  onPress={handleSendMessage}
-                  disabled={generateVersionMutation.isPending}
-                >
-                  {generateVersionMutation.isPending ? (
-                    <ActivityIndicator size="small" color="#F8F6F1" />
-                  ) : (
-                    <Ionicons name="send" size={20} color="#F8F6F1" />
-                  )}
-                  <ThemedText style={styles.generateButtonText}>
-                    {generateVersionMutation.isPending
-                      ? "Generating..."
-                      : "Generate New Version"}
+            {selectedPrompt && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={20}
+                    color="#8B7355"
+                  />
+                  <ThemedText style={styles.sectionTitle}>
+                    Original Prompt
                   </ThemedText>
-                </TouchableOpacity>
+                </View>
+                <View style={styles.promptCard}>
+                  <ThemedText style={styles.promptText}>
+                    &ldquo;{selectedPrompt.message}&rdquo;
+                  </ThemedText>
+                </View>
               </View>
-            </View>
+            )}
           </ScrollView>
         </TouchableWithoutFeedback>
+
+        {/* Generate New Version Button */}
+        <View style={styles.generateButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.generateButton,
+              generateVersionMutation.isPending &&
+                styles.generateButtonDisabled,
+            ]}
+            onPress={() => setModalVisible(true)}
+            disabled={generateVersionMutation.isPending}
+          >
+            {generateVersionMutation.isPending ? (
+              <ActivityIndicator size="small" color="#F8F6F1" />
+            ) : (
+              <Ionicons name="add-circle-outline" size={24} color="#F8F6F1" />
+            )}
+            <ThemedText style={styles.generateButtonText}>
+              {generateVersionMutation.isPending
+                ? "Generating..."
+                : "Generate New Version"}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Generate New Version Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(false);
+            setNewVersionMessage("");
+          }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={styles.modalContainer}>
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <Ionicons name="create-outline" size={28} color="#8B7355" />
+                    <ThemedText style={styles.modalTitle}>
+                      Generate New Version
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => setModalVisible(false)}
+                      style={styles.closeButton}
+                    >
+                      <Ionicons name="close" size={24} color="#8B7355" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Modal Content */}
+                  <View style={styles.modalContent}>
+                    <ThemedText style={styles.modalSubtitle}>
+                      Describe the changes you&apos;d like to make to this
+                      recipe
+                    </ThemedText>
+
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="e.g., Make it spicier, add more vegetables, reduce cooking time..."
+                      placeholderTextColor="#A69B8D"
+                      value={newVersionMessage}
+                      onChangeText={setNewVersionMessage}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+
+                    {inputError ? (
+                      <ThemedText style={styles.errorText}>
+                        {inputError}
+                      </ThemedText>
+                    ) : (
+                      <ThemedText style={styles.modalHint}>
+                        Be specific about what you want to change!
+                      </ThemedText>
+                    )}
+                  </View>
+
+                  {/* Modal Actions */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setModalVisible(false);
+                        setNewVersionMessage("");
+                      }}
+                    >
+                      <ThemedText style={styles.cancelButtonText}>
+                        Cancel
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.createButton]}
+                      onPress={handleGenerateVersion}
+                      disabled={generateVersionMutation.isPending}
+                    >
+                      {generateVersionMutation.isPending ? (
+                        <ActivityIndicator size="small" color="#F8F6F1" />
+                      ) : (
+                        <Ionicons name="create" size={20} color="#F8F6F1" />
+                      )}
+                      <ThemedText style={styles.createButtonText}>
+                        {generateVersionMutation.isPending
+                          ? "Generating..."
+                          : "Generate"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       </ThemedView>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -439,20 +504,23 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 100, // Space for the floating button
   },
-  recipeInfoCard: {
+  recipeCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 20,
-    marginVertical: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: "#E8E0D0",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -501,6 +569,7 @@ const styles = StyleSheet.create({
     color: "#8B7355",
   },
   section: {
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   sectionHeader: {
@@ -535,9 +604,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   ingredientText: {
+    flex: 1,
     fontSize: 16,
     color: "#5D4E37",
-    flex: 1,
     lineHeight: 22,
   },
   instructionsList: {
@@ -549,6 +618,7 @@ const styles = StyleSheet.create({
   },
   instructionItem: {
     flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   instructionNumber: {
@@ -556,23 +626,23 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: "#8B7355",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   instructionNumberText: {
     color: "#F8F6F1",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "bold",
   },
   instructionText: {
+    flex: 1,
     fontSize: 16,
     color: "#5D4E37",
-    flex: 1,
     lineHeight: 22,
   },
   promptCard: {
-    backgroundColor: "#F8F6F1",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -581,36 +651,28 @@ const styles = StyleSheet.create({
   promptText: {
     fontSize: 16,
     color: "#5D4E37",
-    fontStyle: "italic",
     lineHeight: 22,
+    fontStyle: "italic",
   },
-  generateCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E8E0D0",
-  },
-  messageInput: {
-    height: 100,
-    borderWidth: 2,
-    borderColor: "#E8E0D0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#5D4E37",
+  generateButtonContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: "#F8F6F1",
-    marginBottom: 16,
-    textAlignVertical: "top",
+    borderTopWidth: 1,
+    borderTopColor: "#E8E0D0",
   },
   generateButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#8B7355",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   generateButtonDisabled: {
     backgroundColor: "#A8A8A8",
@@ -628,9 +690,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#8B7355",
     fontSize: 16,
-    fontWeight: "600",
+    color: "#8B7355",
     marginTop: 16,
   },
   versionItem: {
@@ -704,5 +765,120 @@ const styles = StyleSheet.create({
   loadingMoreVersions: {
     padding: 12,
     alignItems: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E0D0",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#5D4E37",
+    flex: 1,
+    marginLeft: 12,
+  },
+  closeButton: {
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: "#F8F6F1",
+  },
+  modalContent: {
+    marginBottom: 24,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  modalInput: {
+    height: 120,
+    borderWidth: 2,
+    borderColor: "#E8E0D0",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#5D4E37",
+    backgroundColor: "#F8F6F1",
+    marginBottom: 12,
+    textAlignVertical: "top",
+  },
+  modalHint: {
+    color: "#8B7355",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flex: 1,
+  },
+  cancelButton: {
+    backgroundColor: "#F8F6F1",
+    borderWidth: 2,
+    borderColor: "#E8E0D0",
+  },
+  createButton: {
+    backgroundColor: "#8B7355",
+  },
+  cancelButtonText: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  createButtonText: {
+    color: "#F8F6F1",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginTop: 16,
+    textAlign: "center",
   },
 });

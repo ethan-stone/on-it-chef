@@ -15,7 +15,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useListRecipes, useCreateRecipe } from "@/api/recipes";
+import {
+  useListRecipes,
+  useCreateRecipe,
+  useDeleteRecipe,
+} from "@/api/recipes";
 import { useRouter } from "expo-router";
 
 export default function Recipes() {
@@ -29,6 +33,7 @@ export default function Recipes() {
     isFetchingNextPage,
   } = useListRecipes();
   const createRecipeMutation = useCreateRecipe();
+  const deleteRecipeMutation = useDeleteRecipe();
   const [modalVisible, setModalVisible] = useState(false);
   const [recipeMessage, setRecipeMessage] = useState("");
   const [inputError, setInputError] = useState("");
@@ -91,6 +96,37 @@ export default function Recipes() {
     }
   };
 
+  // Handle deleting a recipe
+  const handleDeleteRecipe = (recipe: any) => {
+    const recipeName = getRecipeName(recipe);
+
+    Alert.alert(
+      "Delete Recipe",
+      `Are you sure you want to delete "${recipeName}"? This action cannot be undone and will delete all versions of this recipe.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteRecipeMutation.mutateAsync(recipe.id);
+              Alert.alert("Success", "Recipe deleted successfully!");
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to delete recipe. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Handle loading more recipes
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -136,6 +172,16 @@ export default function Recipes() {
       <View style={styles.recipeArrow}>
         <Ionicons name="chevron-forward" size={20} color="#8B7355" />
       </View>
+
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          handleDeleteRecipe(recipe);
+        }}
+      >
+        <Ionicons name="trash-outline" size={20} color="#D32F2F" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -438,9 +484,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    position: "relative",
   },
   recipeContent: {
     flex: 1,
+    marginRight: 8,
   },
   recipeHeader: {
     flexDirection: "row",
@@ -472,6 +520,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 14,
     color: "#8B7355", // Medium brown text
+  },
+  deleteButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#F8F6F1",
+    zIndex: 1,
   },
   recipeArrow: {
     justifyContent: "center",

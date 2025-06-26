@@ -335,4 +335,25 @@ export class RecipeService {
       versions: mongoVersions.map(fromMongo.recipeVersion),
     };
   }
+
+  async deleteRecipe(recipeId: string): Promise<void> {
+    const session = this.client.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // Delete the recipe
+        await this.recipesColl.deleteOne({ _id: recipeId });
+
+        // Delete all recipe versions
+        await this.recipeVersionsColl.deleteMany({ recipeId });
+
+        // Delete all recipe prompts
+        await this.recipePromptsColl.deleteMany({ recipeId });
+      });
+    } catch (error) {
+      console.error("Error deleting recipe:", error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
 }

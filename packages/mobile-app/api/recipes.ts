@@ -4,6 +4,7 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
+  useQuery,
 } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 
@@ -208,6 +209,96 @@ export function useListRecipeVersions(recipeId: string) {
       return undefined; // No more pages
     },
     initialPageParam: 1,
+  });
+
+  return query;
+}
+
+export function useDeleteRecipe() {
+  const { replace } = useRouter();
+  const queryClient = useQueryClient();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  if (isLoaded && !userId) {
+    replace("/");
+  }
+
+  const mutation = useMutation({
+    mutationFn: async (recipeId: string) => {
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.deleteRecipe"].$delete(
+        {
+          json: { recipeId },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to delete recipe");
+      }
+
+      const result = await response.json();
+
+      return result;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch recipes list
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
+
+  return mutation;
+}
+
+export function useListRecipePrompts(recipeId: string) {
+  const { replace } = useRouter();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  if (isLoaded && !userId) {
+    replace("/");
+  }
+
+  const query = useQuery({
+    queryKey: ["recipe-prompts", recipeId],
+    queryFn: async () => {
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.listRecipePrompts"].$get(
+        {
+          query: {
+            recipeId,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to list recipe prompts");
+      }
+
+      const prompts = await response.json();
+
+      return prompts;
+    },
   });
 
   return query;
