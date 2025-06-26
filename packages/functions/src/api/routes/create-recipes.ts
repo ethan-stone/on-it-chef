@@ -16,7 +16,7 @@ const route = createRoute({
           schema: z.object({
             userGivenName: z.string().optional(),
             visibility: z.enum(["public", "private"]).default("private"),
-            dietaryRestrictions: z.string().optional(),
+            includeDietaryRestrictions: z.boolean().default(true),
             message: z.string(),
           }),
         },
@@ -75,12 +75,14 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     });
   }
 
-  const { visibility, dietaryRestrictions, message } = c.req.valid("json");
+  const { visibility, includeDietaryRestrictions, message } =
+    c.req.valid("json");
 
   try {
     // Use provided dietary restrictions or fall back to user's saved preferences
-    const finalDietaryRestrictions =
-      dietaryRestrictions || user.dietaryRestrictions;
+    const finalDietaryRestrictions = includeDietaryRestrictions
+      ? user.dietaryRestrictions
+      : undefined;
 
     // Call the AI to generate the recipe
     const aiRecipe = await generateRecipe(message, finalDietaryRestrictions);

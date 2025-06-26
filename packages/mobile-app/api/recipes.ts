@@ -75,7 +75,7 @@ export function useCreateRecipe() {
     mutationFn: async (data: {
       userGivenName?: string;
       visibility?: "public" | "private";
-      dietaryRestrictions?: string;
+      includeDietaryRestrictions?: boolean;
       message: string;
     }) => {
       const token = await getToken();

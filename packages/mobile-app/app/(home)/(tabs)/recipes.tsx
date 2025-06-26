@@ -41,6 +41,8 @@ export default function Recipes() {
   const [modalVisible, setModalVisible] = useState(false);
   const [recipeMessage, setRecipeMessage] = useState("");
   const [inputError, setInputError] = useState("");
+  const [includeDietaryRestrictions, setIncludeDietaryRestrictions] =
+    useState(true);
   const textInputRef = useRef<TextInput>(null);
 
   // Auto-focus the text input when modal opens
@@ -103,9 +105,11 @@ export default function Recipes() {
       const newRecipe = await createRecipeMutation.mutateAsync({
         visibility: "private",
         message: recipeMessage.trim(),
+        includeDietaryRestrictions: includeDietaryRestrictions,
       });
       setModalVisible(false);
       setRecipeMessage("");
+      setIncludeDietaryRestrictions(true);
       // Navigate to the new recipe's detail page
       router.push(`/recipe/${newRecipe.id}`);
     } catch (error) {
@@ -309,6 +313,7 @@ export default function Recipes() {
             setModalVisible(false);
             setRecipeMessage("");
             setInputError("");
+            setIncludeDietaryRestrictions(true);
           }}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -326,6 +331,7 @@ export default function Recipes() {
                         setModalVisible(false);
                         setRecipeMessage("");
                         setInputError("");
+                        setIncludeDietaryRestrictions(true);
                       }}
                       style={styles.closeButton}
                     >
@@ -368,22 +374,39 @@ export default function Recipes() {
                     ) : null}
 
                     {user?.dietaryRestrictions && (
-                      <View style={styles.dietaryNote}>
-                        <Ionicons
-                          name="information-circle-outline"
-                          size={16}
-                          color="#8B7355"
-                        />
-                        <ThemedText style={styles.dietaryNoteText}>
-                          Your dietary restrictions ({user.dietaryRestrictions})
-                          will be automatically applied
-                        </ThemedText>
+                      <View style={styles.dietaryToggleContainer}>
+                        <View style={styles.dietaryToggleContent}>
+                          <Ionicons
+                            name="restaurant-outline"
+                            size={16}
+                            color="#8B7355"
+                          />
+                          <ThemedText style={styles.dietaryToggleText}>
+                            Include dietary restrictions
+                          </ThemedText>
+                        </View>
+                        <TouchableOpacity
+                          style={[
+                            styles.toggleSwitch,
+                            includeDietaryRestrictions &&
+                              styles.toggleSwitchActive,
+                          ]}
+                          onPress={() =>
+                            setIncludeDietaryRestrictions(
+                              !includeDietaryRestrictions
+                            )
+                          }
+                        >
+                          <View
+                            style={[
+                              styles.toggleKnob,
+                              includeDietaryRestrictions &&
+                                styles.toggleKnobActive,
+                            ]}
+                          />
+                        </TouchableOpacity>
                       </View>
                     )}
-
-                    <ThemedText style={styles.modalHint}>
-                      Be as detailed as possible for the best results!
-                    </ThemedText>
                   </View>
 
                   {/* Modal Actions */}
@@ -394,6 +417,7 @@ export default function Recipes() {
                         setModalVisible(false);
                         setRecipeMessage("");
                         setInputError("");
+                        setIncludeDietaryRestrictions(true);
                       }}
                     >
                       <ThemedText style={styles.cancelButtonText}>
@@ -730,15 +754,48 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 8,
   },
-  dietaryNote: {
+  dietaryToggleContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
   },
-  dietaryNoteText: {
+  dietaryToggleContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dietaryToggleText: {
     marginLeft: 8,
     color: "#8B7355",
     fontSize: 14,
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#E8E0D0",
+    padding: 2,
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+  toggleSwitchActive: {
+    backgroundColor: "#8B7355",
+  },
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleKnobActive: {
+    transform: [{ translateX: 20 }],
   },
   errorMessageContainer: {
     flexDirection: "row",

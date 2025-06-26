@@ -288,7 +288,12 @@ export class RecipeService {
         await this.recipesColl.updateOne(
           { _id: recipeId },
           {
-            $push: { recentVersions: mongoRecipeVersion },
+            $push: {
+              recentVersions: {
+                $each: [mongoRecipeVersion],
+                $slice: -10, // Keep only the last 10 elements (most recent)
+              },
+            },
             $set: { updatedAt: now },
           }
         );
