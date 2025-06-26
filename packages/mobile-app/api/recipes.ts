@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { client } from "./client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 
 export function useListRecipes() {
@@ -46,4 +46,54 @@ export function useListRecipes() {
   });
 
   return query;
+}
+
+export function useCreateRecipe() {
+  const { replace } = useRouter();
+  const queryClient = useQueryClient();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  if (isLoaded && !userId) {
+    replace("/");
+  }
+
+  const mutation = useMutation({
+    mutationFn: async (data: {
+      userGivenName?: string;
+      visibility?: "public" | "private";
+      dietaryRestrictions?: string;
+    }) => {
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.createRecipe"].$post(
+        {
+          json: data,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to create recipe");
+      }
+
+      const recipe = await response.json();
+
+      return recipe;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch recipes list
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
+
+  return mutation;
 }

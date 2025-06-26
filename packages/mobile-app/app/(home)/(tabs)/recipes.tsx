@@ -5,14 +5,16 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useListRecipes } from "@/api/recipes";
+import { useListRecipes, useCreateRecipe } from "@/api/recipes";
 
 export default function Recipes() {
   const { data, isLoading, error } = useListRecipes();
+  const createRecipeMutation = useCreateRecipe();
 
   // Helper function to format time in minutes to readable format
   const formatTime = (minutes: number) => {
@@ -47,6 +49,18 @@ export default function Recipes() {
       return formatTime(version.prepTime + version.cookTime);
     }
     return "Time not available";
+  };
+
+  // Handle creating a new recipe
+  const handleCreateRecipe = async () => {
+    try {
+      await createRecipeMutation.mutateAsync({
+        visibility: "private",
+      });
+      Alert.alert("Success", "Recipe created successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to create recipe. Please try again.");
+    }
   };
 
   return (
@@ -157,9 +171,24 @@ export default function Recipes() {
 
         {/* Add Recipe Button */}
         <View style={styles.addButtonContainer}>
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={24} color="#F8F6F1" />
-            <ThemedText style={styles.addButtonText}>Add New Recipe</ThemedText>
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              createRecipeMutation.isPending && styles.addButtonDisabled,
+            ]}
+            onPress={handleCreateRecipe}
+            disabled={createRecipeMutation.isPending}
+          >
+            {createRecipeMutation.isPending ? (
+              <ActivityIndicator size="small" color="#F8F6F1" />
+            ) : (
+              <Ionicons name="add" size={24} color="#F8F6F1" />
+            )}
+            <ThemedText style={styles.addButtonText}>
+              {createRecipeMutation.isPending
+                ? "Creating..."
+                : "Add New Recipe"}
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -330,6 +359,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 20,
+  },
+  addButtonDisabled: {
+    backgroundColor: "#A8A8A8", // Grayed out color
+    opacity: 0.6,
   },
   addButtonText: {
     color: "#F8F6F1", // Light book page color

@@ -13,6 +13,7 @@ import { GetLoggedInUser } from "./routes/get-user";
 import { init } from "./root";
 import { Resource } from "sst";
 import { ListRecipes } from "./routes/list-recipes";
+import { CreateRecipe } from "./routes/create-recipes";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -135,7 +136,8 @@ app.use("*", async (c, next) => {
 const routes = app
   .openapi(ClerkWebhook.route, ClerkWebhook.handler)
   .openapi(GetLoggedInUser.route, GetLoggedInUser.handler)
-  .openapi(ListRecipes.route, ListRecipes.handler);
+  .openapi(ListRecipes.route, ListRecipes.handler)
+  .openapi(CreateRecipe.route, CreateRecipe.handler);
 
 export type Routes = typeof routes;
 
