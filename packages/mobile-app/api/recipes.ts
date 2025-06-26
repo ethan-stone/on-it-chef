@@ -75,6 +75,7 @@ export function useCreateRecipe() {
       userGivenName?: string;
       visibility?: "public" | "private";
       dietaryRestrictions?: string;
+      message: string;
     }) => {
       const token = await getToken();
 

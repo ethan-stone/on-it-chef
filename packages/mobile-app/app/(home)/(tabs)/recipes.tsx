@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,6 +7,10 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
+  TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -22,6 +27,9 @@ export default function Recipes() {
     isFetchingNextPage,
   } = useListRecipes();
   const createRecipeMutation = useCreateRecipe();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [recipeMessage, setRecipeMessage] = useState("");
+  const [inputError, setInputError] = useState("");
 
   // Flatten all pages of recipes into a single array
   const allRecipes = data?.pages.flatMap((page) => page.recipes || []) || [];
@@ -63,10 +71,18 @@ export default function Recipes() {
 
   // Handle creating a new recipe
   const handleCreateRecipe = async () => {
+    setInputError("");
+    if (!recipeMessage.trim()) {
+      setInputError("Please describe the recipe you want.");
+      return;
+    }
     try {
       await createRecipeMutation.mutateAsync({
         visibility: "private",
+        message: recipeMessage.trim(),
       });
+      setModalVisible(false);
+      setRecipeMessage("");
       Alert.alert("Success", "Recipe created successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to create recipe. Please try again.");
@@ -202,7 +218,7 @@ export default function Recipes() {
               styles.addButton,
               createRecipeMutation.isPending && styles.addButtonDisabled,
             ]}
-            onPress={handleCreateRecipe}
+            onPress={() => setModalVisible(true)}
             disabled={createRecipeMutation.isPending}
           >
             {createRecipeMutation.isPending ? (
@@ -217,6 +233,91 @@ export default function Recipes() {
             </ThemedText>
           </TouchableOpacity>
         </View>
+        {/* Create Recipe Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(false);
+            setRecipeMessage("");
+          }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={styles.modalContainer}>
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <Ionicons name="restaurant" size={28} color="#8B7355" />
+                    <ThemedText style={styles.modalTitle}>
+                      Create New Recipe
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => setModalVisible(false)}
+                      style={styles.closeButton}
+                    >
+                      <Ionicons name="close" size={24} color="#8B7355" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Modal Content */}
+                  <View style={styles.modalContent}>
+                    <ThemedText style={styles.modalSubtitle}>
+                      Describe the recipe you&apos;d like to create
+                    </ThemedText>
+
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="e.g., A spicy chicken curry with coconut milk and fresh herbs"
+                      placeholderTextColor="#A69B8D"
+                      value={recipeMessage}
+                      onChangeText={setRecipeMessage}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                    />
+
+                    <ThemedText style={styles.modalHint}>
+                      Be as detailed as possible for the best results!
+                    </ThemedText>
+                  </View>
+
+                  {/* Modal Actions */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setModalVisible(false);
+                        setRecipeMessage("");
+                      }}
+                    >
+                      <ThemedText style={styles.cancelButtonText}>
+                        Cancel
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.createButton]}
+                      onPress={handleCreateRecipe}
+                      disabled={createRecipeMutation.isPending}
+                    >
+                      {createRecipeMutation.isPending ? (
+                        <ActivityIndicator size="small" color="#F8F6F1" />
+                      ) : (
+                        <Ionicons name="add" size={20} color="#F8F6F1" />
+                      )}
+                      <ThemedText style={styles.createButtonText}>
+                        {createRecipeMutation.isPending
+                          ? "Creating..."
+                          : "Create"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       </ThemedView>
     </SafeAreaView>
   );
@@ -409,5 +510,108 @@ const styles = StyleSheet.create({
   },
   recipeListContent: {
     paddingBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E0D0",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#5D4E37",
+    flex: 1,
+    marginLeft: 12,
+  },
+  closeButton: {
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: "#F8F6F1",
+  },
+  modalContent: {
+    marginBottom: 24,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: "#8B7355",
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  modalInput: {
+    height: 120,
+    borderWidth: 2,
+    borderColor: "#E8E0D0",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#5D4E37",
+    backgroundColor: "#F8F6F1",
+    marginBottom: 12,
+    textAlignVertical: "top",
+  },
+  modalHint: {
+    color: "#8B7355",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flex: 1,
+  },
+  cancelButton: {
+    backgroundColor: "#F8F6F1",
+    borderWidth: 2,
+    borderColor: "#E8E0D0",
+  },
+  createButton: {
+    backgroundColor: "#8B7355",
+  },
+  cancelButtonText: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  createButtonText: {
+    color: "#F8F6F1",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });

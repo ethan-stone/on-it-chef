@@ -26,6 +26,10 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "GeminiApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "MongoUrl": {
       "type": "sst.sst.Secret"
       "value": string
