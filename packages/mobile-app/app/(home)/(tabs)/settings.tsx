@@ -8,7 +8,6 @@ import {
   TextInput,
   Modal,
   TouchableWithoutFeedback,
-  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -16,8 +15,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useGetLoggedInUser, useUpdateUserSettings } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
-import { useState, useEffect, useRef } from "react";
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 type SettingItem = {
   icon: string;
@@ -75,6 +73,7 @@ export default function Settings() {
       });
       showToast("Dietary restrictions updated successfully!", "success");
     } catch (error) {
+      console.error(error);
       // Revert optimistic update on error
       setDietaryRestrictions(user?.dietaryRestrictions || "");
       showToast(
