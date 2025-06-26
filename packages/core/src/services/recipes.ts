@@ -105,6 +105,7 @@ export class RecipeService {
   private dbName = "onItChef";
   private recipesColl: Collection<MongoRecipe>;
   private recipeVersionsColl: Collection<MongoRecipeVersion>;
+  private recipePromptsColl: Collection<MongoRecipePrompt>;
 
   constructor(private readonly client: MongoClient) {
     this.recipesColl = this.client
@@ -113,9 +114,12 @@ export class RecipeService {
     this.recipeVersionsColl = this.client
       .db(this.dbName)
       .collection<MongoRecipeVersion>("recipeVersions");
+    this.recipePromptsColl = this.client
+      .db(this.dbName)
+      .collection<MongoRecipePrompt>("recipePrompts");
   }
 
-  private uid(prefix: "recipe" | "recipe_ver") {
+  private uid(prefix: "recipe" | "recipe_ver" | "recipe_prompt") {
     return `${prefix}_${ulid()}`;
   }
 
@@ -123,6 +127,10 @@ export class RecipeService {
     dietaryRestrictions: Recipe["dietaryRestrictions"];
     visibility: Recipe["visibility"];
     initialRecipeVersion: Omit<RecipeVersion, "id" | "recipeId">;
+    initialRecipePrompt: Omit<
+      RecipePrompt,
+      "id" | "recipeId" | "generatedVersion"
+    >;
   }): Promise<Recipe> {
     const recipeId = this.uid("recipe");
     const recipeVersionId = this.uid("recipe_ver");
@@ -133,6 +141,14 @@ export class RecipeService {
       _id: recipeVersionId,
       recipeId,
       ...recipe.initialRecipeVersion,
+      createdAt: now,
+    };
+
+    const mongoRecipePrompt: MongoRecipePrompt = {
+      _id: this.uid("recipe_prompt"),
+      recipeId,
+      ...recipe.initialRecipePrompt,
+      generatedVersion: mongoRecipeVersion._id,
       createdAt: now,
     };
 
@@ -152,6 +168,7 @@ export class RecipeService {
       await session.withTransaction(async () => {
         await this.recipesColl.insertOne(mongoRecipe);
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
       });
 
       return fromMongo.recipe(mongoRecipe);

@@ -229,6 +229,11 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         instructions: randomRecipe.instructions,
         createdAt: new Date(),
       },
+      initialRecipePrompt: {
+        userId: user.id,
+        message: "Create a recipe",
+        createdAt: new Date(),
+      },
     });
 
     logger.info(`Created recipe ${recipe.id} for user ${user.id}`);
