@@ -44,6 +44,8 @@ Guidelines:
 - Keep ingredient lists and instructions concise but complete
 - Do not include any text outside the JSON structure
 
+DIETARY RESTRICTIONS: If dietary restrictions are provided, you MUST strictly adhere to them. Do not include any ingredients or cooking methods that violate these restrictions. If the user's request conflicts with their dietary restrictions, prioritize the dietary restrictions and suggest alternatives that fit within those constraints.
+
 Example response format:
 {
   "generatedName": "Creamy Garlic Parmesan Pasta",
@@ -100,13 +102,20 @@ Guidelines:
 - Keep ingredient lists and instructions concise but complete
 - Do not include any text outside the JSON structure
 
+DIETARY RESTRICTIONS: If dietary restrictions are provided, you MUST strictly adhere to them. Do not include any ingredients or cooking methods that violate these restrictions. If the user's request conflicts with their dietary restrictions, prioritize the dietary restrictions and suggest alternatives that fit within those constraints.
+
 Previous Recipe Versions Context:
 `;
 
 export async function generateRecipe(
-  userPrompt: string
+  userPrompt: string,
+  dietaryRestrictions?: string | null
 ): Promise<AIRecipeResponse> {
-  const fullPrompt = `${SYSTEM_PROMPT}
+  const dietaryContext = dietaryRestrictions
+    ? `\n\nIMPORTANT: The user has the following dietary restrictions: ${dietaryRestrictions}. Please ensure the recipe strictly adheres to these restrictions.`
+    : "";
+
+  const fullPrompt = `${SYSTEM_PROMPT}${dietaryContext}
 
 User Request: ${userPrompt}
 
@@ -149,7 +158,8 @@ Generate a recipe based on the user's request. Respond with ONLY the JSON object
 export async function generateRecipeVersion(
   userPrompt: string,
   previousVersions: RecipeVersion[],
-  previousPrompts: RecipePrompt[]
+  previousPrompts: RecipePrompt[],
+  dietaryRestrictions?: string | null
 ): Promise<AIRecipeResponse> {
   // Build context from previous versions
   const versionContext = previousVersions
@@ -173,8 +183,11 @@ Version ${version.version} (${
     .join("\n");
 
   const nextVersion = previousVersions.length + 1;
+  const dietaryContext = dietaryRestrictions
+    ? `\n\nIMPORTANT: The user has the following dietary restrictions: ${dietaryRestrictions}. Please ensure the updated recipe strictly adheres to these restrictions.`
+    : "";
 
-  const fullPrompt = `${VERSION_UPDATE_PROMPT}${versionContext}
+  const fullPrompt = `${VERSION_UPDATE_PROMPT}${versionContext}${dietaryContext}
 
 Current User Request: ${userPrompt}
 

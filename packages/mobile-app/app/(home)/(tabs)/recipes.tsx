@@ -20,6 +20,7 @@ import {
   useCreateRecipe,
   useDeleteRecipe,
 } from "@/api/recipes";
+import { useGetLoggedInUser } from "@/api/users";
 import { useRouter } from "expo-router";
 
 export default function Recipes() {
@@ -32,6 +33,7 @@ export default function Recipes() {
     hasNextPage,
     isFetchingNextPage,
   } = useListRecipes();
+  const { data: user } = useGetLoggedInUser();
   const createRecipeMutation = useCreateRecipe();
   const deleteRecipeMutation = useDeleteRecipe();
   const [modalVisible, setModalVisible] = useState(false);
@@ -328,6 +330,20 @@ export default function Recipes() {
                       numberOfLines={4}
                       textAlignVertical="top"
                     />
+
+                    {user?.dietaryRestrictions && (
+                      <View style={styles.dietaryNote}>
+                        <Ionicons
+                          name="information-circle-outline"
+                          size={16}
+                          color="#8B7355"
+                        />
+                        <ThemedText style={styles.dietaryNoteText}>
+                          Your dietary restrictions ({user.dietaryRestrictions})
+                          will be automatically applied
+                        </ThemedText>
+                      </View>
+                    )}
 
                     <ThemedText style={styles.modalHint}>
                       Be as detailed as possible for the best results!
@@ -675,5 +691,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  dietaryNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  dietaryNoteText: {
+    marginLeft: 8,
+    color: "#8B7355",
+    fontSize: 14,
   },
 });

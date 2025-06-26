@@ -10,6 +10,7 @@ import { envSchema } from "./env";
 import { ILogger, Logger } from "./logger";
 import { clerkMiddleware } from "@hono/clerk-auth";
 import { GetLoggedInUser } from "./routes/get-user";
+import { UpdateUserSettings } from "./routes/update-user-settings";
 import { init } from "./root";
 import { Resource } from "sst";
 import { ListRecipes } from "./routes/list-recipes";
@@ -145,7 +146,8 @@ const routes = app
   .openapi(GenerateRecipeVersion.route, GenerateRecipeVersion.handler)
   .openapi(ListRecipeVersions.route, ListRecipeVersions.handler)
   .openapi(DeleteRecipe.route, DeleteRecipe.handler)
-  .openapi(ListRecipePrompts.route, ListRecipePrompts.handler);
+  .openapi(ListRecipePrompts.route, ListRecipePrompts.handler)
+  .openapi(UpdateUserSettings.route, UpdateUserSettings.handler);
 
 export type Routes = typeof routes;
 

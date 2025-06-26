@@ -88,4 +88,28 @@ export class UserService {
     if (!dietaryRestrictions) return null;
     return dietaryRestrictions;
   }
+
+  async updateDietaryRestrictions(
+    userId: string,
+    dietaryRestrictions: string | null
+  ): Promise<User> {
+    const now = new Date();
+
+    const result = await this.usersColl.findOneAndUpdate(
+      { _id: userId },
+      {
+        $set: {
+          dietaryRestrictions,
+          updatedAt: now,
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      throw new Error("User not found");
+    }
+
+    return fromMongo.user(result);
+  }
 }

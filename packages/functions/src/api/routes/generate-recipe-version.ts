@@ -105,7 +105,8 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     const aiRecipe = await generateRecipeVersion(
       message,
       currentRecipe.recentVersions,
-      previousPrompts
+      previousPrompts,
+      user.dietaryRestrictions
     );
 
     // Create the new recipe version

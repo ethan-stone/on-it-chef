@@ -5,31 +5,86 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ActivityIndicator,
+  TextInput,
+  Alert,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { SignOutButton } from "@/components/SignOutButton";
-import { useGetLoggedInUser } from "@/api/users";
+import { useGetLoggedInUser, useUpdateUserSettings } from "@/api/users";
+import { useState, useEffect } from "react";
+import React from "react";
+
+type SettingItem = {
+  icon: string;
+  title: string;
+  subtitle: string;
+  action: "chevron-forward" | "none" | "edit";
+  customContent?: React.ReactNode;
+  onPress?: () => void;
+};
+
+type SettingsSection = {
+  title: string;
+  items: SettingItem[];
+};
 
 export default function Settings() {
-  const { data, isLoading } = useGetLoggedInUser();
+  const { data: user, isLoading } = useGetLoggedInUser();
+  const updateSettingsMutation = useUpdateUserSettings();
+  const [dietaryRestrictions, setDietaryRestrictions] = useState(
+    user?.dietaryRestrictions || ""
+  );
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editValue, setEditValue] = useState("");
 
-  const settingsSections = [
+  // Update local state when user data changes
+  useEffect(() => {
+    if (user?.dietaryRestrictions !== undefined) {
+      setDietaryRestrictions(user.dietaryRestrictions || "");
+    }
+  }, [user?.dietaryRestrictions]);
+
+  const handleSaveDietaryRestrictions = async () => {
+    try {
+      await updateSettingsMutation.mutateAsync({
+        dietaryRestrictions: editValue.trim() || undefined,
+      });
+      setModalVisible(false);
+      Alert.alert("Success", "Dietary restrictions updated successfully!");
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Failed to update dietary restrictions. Please try again."
+      );
+    }
+  };
+
+  const handleEditDietaryRestrictions = () => {
+    setEditValue(dietaryRestrictions);
+    setModalVisible(true);
+  };
+
+  const getDietaryRestrictionsDisplay = () => {
+    if (!user?.dietaryRestrictions || user.dietaryRestrictions.trim() === "") {
+      return "No dietary restrictions set";
+    }
+    return user.dietaryRestrictions;
+  };
+
+  const settingsSections: SettingsSection[] = [
     {
       title: "Account",
       items: [
         {
-          icon: "person-outline",
-          title: "Profile",
-          subtitle: "Edit your profile information",
-          action: "chevron-forward",
-        },
-        {
           icon: "mail-outline",
           title: "Email",
-          subtitle: data?.user?.email || "No email set",
-          action: "chevron-forward",
+          subtitle: user?.email || "No email set",
+          action: "none",
         },
       ],
     },
@@ -37,22 +92,11 @@ export default function Settings() {
       title: "Preferences",
       items: [
         {
-          icon: "notifications-outline",
-          title: "Notifications",
-          subtitle: "Manage notification preferences",
-          action: "chevron-forward",
-        },
-        {
-          icon: "moon-outline",
-          title: "Dark Mode",
-          subtitle: "Toggle dark mode",
-          action: "chevron-forward",
-        },
-        {
-          icon: "language-outline",
-          title: "Language",
-          subtitle: "English",
-          action: "chevron-forward",
+          icon: "restaurant-outline",
+          title: "Dietary Restrictions",
+          subtitle: getDietaryRestrictionsDisplay(),
+          action: "edit",
+          onPress: handleEditDietaryRestrictions,
         },
       ],
     },
@@ -63,18 +107,6 @@ export default function Settings() {
           icon: "help-circle-outline",
           title: "Help & Support",
           subtitle: "Get help and contact support",
-          action: "chevron-forward",
-        },
-        {
-          icon: "document-text-outline",
-          title: "Terms of Service",
-          subtitle: "Read our terms of service",
-          action: "chevron-forward",
-        },
-        {
-          icon: "shield-checkmark-outline",
-          title: "Privacy Policy",
-          subtitle: "Read our privacy policy",
           action: "chevron-forward",
         },
         {
@@ -123,10 +155,8 @@ export default function Settings() {
                   <TouchableOpacity
                     key={itemIndex}
                     style={styles.settingItem}
-                    onPress={() => {
-                      // Handle setting item press
-                      console.log(`Pressed: ${item.title}`);
-                    }}
+                    onPress={item.onPress}
+                    disabled={!item.onPress}
                   >
                     <View style={styles.settingIcon}>
                       <Ionicons
@@ -143,15 +173,27 @@ export default function Settings() {
                       <ThemedText style={styles.settingSubtitle}>
                         {item.subtitle}
                       </ThemedText>
+                      {item.customContent && item.customContent}
                     </View>
 
-                    <View style={styles.settingAction}>
-                      <Ionicons
-                        name={item.action as any}
-                        size={20}
-                        color="#8B7355"
-                      />
-                    </View>
+                    {item.action === "edit" && (
+                      <View style={styles.settingAction}>
+                        <Ionicons
+                          name="create-outline"
+                          size={20}
+                          color="#8B7355"
+                        />
+                      </View>
+                    )}
+                    {item.action === "chevron-forward" && (
+                      <View style={styles.settingAction}>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color="#8B7355"
+                        />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -159,6 +201,48 @@ export default function Settings() {
           </ScrollView>
         )}
       </ThemedView>
+
+      {/* Modal for editing dietary restrictions */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}
+      >
+        <TouchableOpacity
+          style={styles.modalBackground}
+          activeOpacity={1}
+          onPress={() => {
+            setModalVisible(false);
+          }}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContent}>
+              <ThemedText style={styles.modalTitle}>
+                Edit Dietary Restrictions
+              </ThemedText>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="e.g., Vegetarian, Gluten-free, No dairy..."
+                placeholderTextColor="#A69B8D"
+                value={editValue}
+                onChangeText={setEditValue}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity
+                style={styles.modalSaveButton}
+                onPress={handleSaveDietaryRestrictions}
+              >
+                <ThemedText style={styles.modalSaveButtonText}>Save</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -260,5 +344,49 @@ const styles = StyleSheet.create({
     color: "#8B7355",
     marginTop: 16,
     textAlign: "center",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 12,
+    width: "80%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#5D4E37",
+    marginBottom: 16,
+  },
+  modalInput: {
+    height: 100,
+    borderWidth: 1,
+    borderColor: "#E8E0D0",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#5D4E37",
+    backgroundColor: "#F8F6F1",
+    marginBottom: 16,
+    textAlignVertical: "top",
+  },
+  modalSaveButton: {
+    backgroundColor: "#8B7355",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalSaveButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#F8F6F1",
   },
 });

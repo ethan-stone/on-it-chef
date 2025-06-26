@@ -78,11 +78,15 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   const { visibility, dietaryRestrictions, message } = c.req.valid("json");
 
   try {
+    // Use provided dietary restrictions or fall back to user's saved preferences
+    const finalDietaryRestrictions =
+      dietaryRestrictions || user.dietaryRestrictions;
+
     // Call the AI to generate the recipe
-    const aiRecipe = await generateRecipe(message);
+    const aiRecipe = await generateRecipe(message, finalDietaryRestrictions);
 
     const recipe = await root.services.recipesService.createRecipe({
-      dietaryRestrictions: dietaryRestrictions || null,
+      dietaryRestrictions: finalDietaryRestrictions,
       visibility: visibility,
       initialRecipeVersion: {
         userId: user.id,

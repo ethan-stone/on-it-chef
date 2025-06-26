@@ -24,6 +24,7 @@ import {
   useListRecipeVersions,
   useListRecipePrompts,
 } from "@/api/recipes";
+import { useGetLoggedInUser } from "@/api/users";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
@@ -50,6 +51,7 @@ export default function RecipeDetail() {
   } = useListRecipePrompts(id as string);
 
   const generateVersionMutation = useGenerateRecipeVersion();
+  const { data: user } = useGetLoggedInUser();
 
   // Flatten all pages of versions into a single array
   const allVersions =
@@ -419,6 +421,20 @@ export default function RecipeDetail() {
                       numberOfLines={4}
                       textAlignVertical="top"
                     />
+
+                    {user?.dietaryRestrictions && (
+                      <View style={styles.dietaryNote}>
+                        <Ionicons
+                          name="information-circle-outline"
+                          size={16}
+                          color="#8B7355"
+                        />
+                        <ThemedText style={styles.dietaryNoteText}>
+                          Your dietary restrictions ({user.dietaryRestrictions})
+                          will be automatically applied
+                        </ThemedText>
+                      </View>
+                    )}
 
                     {inputError ? (
                       <ThemedText style={styles.errorText}>
@@ -880,5 +896,15 @@ const styles = StyleSheet.create({
     color: "#8B7355",
     marginTop: 16,
     textAlign: "center",
+  },
+  dietaryNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  dietaryNoteText: {
+    color: "#8B7355",
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
