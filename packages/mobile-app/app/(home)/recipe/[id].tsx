@@ -188,8 +188,8 @@ ${version.instructions
 
       showToast("Recipe forked successfully!", "success");
 
-      // Navigate to the new forked recipe
-      router.push(`/recipe/${forkedRecipe.id}`);
+      // Navigate to the new forked recipe, replacing the current screen
+      router.replace(`/recipe/${forkedRecipe.id}`);
     } catch (error) {
       console.error("Failed to fork recipe:", error);
       showToast("Failed to fork recipe. Please try again.", "error");
