@@ -4,7 +4,7 @@ import { handleZodError } from "./errors";
 import { prettyJSON } from "hono/pretty-json";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { ClerkWebhook } from "./routes/clerk-webhook";
-import { handle, streamHandle } from "hono/aws-lambda";
+import { handle } from "hono/aws-lambda";
 import { uid } from "./uid";
 import { envSchema } from "./env";
 import { ILogger, Logger } from "./logger";
@@ -153,4 +153,4 @@ const routes = app
 
 export type Routes = typeof routes;
 
-export const handler = process.env.SST_LIVE ? handle(app) : streamHandle(app);
+export const handler = handle(app);

@@ -2,7 +2,6 @@ import { secrets } from "./secrets";
 
 export const apiFn = new sst.aws.Function("ApiFn", {
   url: true,
-  streaming: !$dev,
   link: [
     secrets.clerkSecretKey,
     secrets.clerkPublishableKey,
@@ -15,8 +14,6 @@ export const apiFn = new sst.aws.Function("ApiFn", {
     ENVIRONMENT: $app.stage === "production" ? "production" : "development",
   },
 });
-
-const routerLogsBucket = new sst.aws.Bucket("RouterLogsBucket");
 
 export const router = new sst.aws.Router("ApiRouter", {
   routes: {

@@ -148,6 +148,7 @@ export class RecipeService {
       "id" | "recipeId" | "generatedVersion"
     >;
   }): Promise<Recipe> {
+    const startTime = Date.now();
     const recipeId = this.uid("recipe");
     const recipeVersionId = this.uid("recipe_ver");
 
@@ -197,6 +198,8 @@ export class RecipeService {
         await this.recipePromptsColl.insertOne(mongoRecipePrompt);
       });
 
+      const duration = Date.now() - startTime;
+      console.log(`[DB] createRecipe: ${duration}ms`);
       return fromMongo.recipe(mongoRecipe);
     } catch (error) {
       console.error(error);
@@ -207,7 +210,10 @@ export class RecipeService {
   }
 
   async getRecipe(recipeId: string): Promise<Recipe | null> {
+    const startTime = Date.now();
     const mongoRecipe = await this.recipesColl.findOne({ _id: recipeId });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getRecipe: ${duration}ms`);
 
     if (!mongoRecipe) return null;
 
@@ -222,6 +228,7 @@ export class RecipeService {
     hasMore: boolean;
     recipes: Recipe[];
   }> {
+    const startTime = Date.now();
     const mongoRecipes = await this.recipesColl
       .find({ userId })
       .skip((page - 1) * limit)
@@ -229,6 +236,8 @@ export class RecipeService {
       .toArray();
 
     const total = await this.recipesColl.countDocuments({ userId });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] listRecipes: ${duration}ms`);
 
     return {
       hasMore: total > page * limit,
@@ -246,6 +255,7 @@ export class RecipeService {
     message: string,
     dietaryRestrictions?: string
   ): Promise<Recipe> {
+    const startTime = Date.now();
     // Get the current recipe to determine the next version number
     const currentRecipe = await this.getRecipe(recipeId);
     if (!currentRecipe) {
@@ -305,7 +315,10 @@ export class RecipeService {
       });
 
       // Return the updated recipe
-      return (await this.getRecipe(recipeId)) as Recipe;
+      const result = (await this.getRecipe(recipeId)) as Recipe;
+      const duration = Date.now() - startTime;
+      console.log(`[DB] createRecipeVersion: ${duration}ms`);
+      return result;
     } catch (error) {
       console.error(error);
       throw error;
@@ -315,10 +328,13 @@ export class RecipeService {
   }
 
   async getRecipePrompts(recipeId: string): Promise<RecipePrompt[]> {
+    const startTime = Date.now();
     const mongoPrompts = await this.recipePromptsColl
       .find({ recipeId })
       .sort({ createdAt: 1 }) // Sort by creation date ascending
       .toArray();
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getRecipePrompts: ${duration}ms`);
 
     return mongoPrompts.map(fromMongo.recipePrompt);
   }
@@ -331,6 +347,7 @@ export class RecipeService {
     hasMore: boolean;
     versions: RecipeVersion[];
   }> {
+    const startTime = Date.now();
     const mongoVersions = await this.recipeVersionsColl
       .find({ recipeId })
       .sort({ version: -1 }) // Sort by version descending (newest first)
@@ -339,6 +356,8 @@ export class RecipeService {
       .toArray();
 
     const total = await this.recipeVersionsColl.countDocuments({ recipeId });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] listRecipeVersions: ${duration}ms`);
 
     return {
       hasMore: total > page * limit,
@@ -347,6 +366,7 @@ export class RecipeService {
   }
 
   async deleteRecipe(recipeId: string): Promise<void> {
+    const startTime = Date.now();
     const session = this.client.startSession();
     try {
       await session.withTransaction(async () => {
@@ -359,6 +379,8 @@ export class RecipeService {
         // Delete all recipe prompts
         await this.recipePromptsColl.deleteMany({ recipeId });
       });
+      const duration = Date.now() - startTime;
+      console.log(`[DB] deleteRecipe: ${duration}ms`);
     } catch (error) {
       console.error("Error deleting recipe:", error);
       throw error;
@@ -386,6 +408,7 @@ export class RecipeService {
     dietaryRestrictions?: string,
     includeDietaryRestrictions: boolean = true
   ): Promise<Recipe> {
+    const startTime = Date.now();
     // Get the source recipe and version
     const sourceRecipe = await this.getRecipe(sourceRecipeId);
     if (!sourceRecipe) {
@@ -451,6 +474,8 @@ export class RecipeService {
         await this.recipePromptsColl.insertOne(mongoRecipePrompt);
       });
 
+      const duration = Date.now() - startTime;
+      console.log(`[DB] forkRecipe: ${duration}ms`);
       return fromMongo.recipe(mongoRecipe);
     } catch (error) {
       console.error(error);

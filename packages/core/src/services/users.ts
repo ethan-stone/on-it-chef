@@ -52,39 +52,53 @@ export class UserService {
   }
 
   async createUser(user: Omit<User, "id">): Promise<User> {
+    const startTime = Date.now();
     const id = this.uid("user");
     const mongoUser = toMongo.user({ ...user, id });
     await this.usersColl.insertOne(mongoUser);
-
+    const duration = Date.now() - startTime;
+    console.log(`[DB] createUser: ${duration}ms`);
     return fromMongo.user(mongoUser);
   }
+
   async getUser(id: string): Promise<User | null> {
+    const startTime = Date.now();
     const mongoUser = await this.usersColl.findOne({ _id: id });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getUser: ${duration}ms`);
     return mongoUser ? fromMongo.user(mongoUser) : null;
   }
 
   async upsertUser(user: User): Promise<User> {
+    const startTime = Date.now();
     const mongoUser = toMongo.user(user);
     await this.usersColl.updateOne(
       { _id: user.id },
       { $set: mongoUser },
       { upsert: true }
     );
+    const duration = Date.now() - startTime;
+    console.log(`[DB] upsertUser: ${duration}ms`);
     return fromMongo.user(mongoUser);
   }
 
   async deleteUser(userId: string): Promise<void> {
+    const startTime = Date.now();
     await this.usersColl.deleteOne({ _id: userId });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] deleteUser: ${duration}ms`);
   }
 
   async getDietaryRestrictions(
     userId: string
   ): Promise<User["dietaryRestrictions"] | null> {
+    const startTime = Date.now();
     const { dietaryRestrictions } = (await this.usersColl.findOne(
       { _id: userId },
       { projection: { dietaryRestrictions: 1 } }
     )) as { dietaryRestrictions: User["dietaryRestrictions"] };
-
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getDietaryRestrictions: ${duration}ms`);
     if (!dietaryRestrictions) return null;
     return dietaryRestrictions;
   }
@@ -93,6 +107,7 @@ export class UserService {
     userId: string,
     dietaryRestrictions: string | null
   ): Promise<User> {
+    const startTime = Date.now();
     const now = new Date();
 
     const result = await this.usersColl.findOneAndUpdate(
@@ -105,6 +120,8 @@ export class UserService {
       },
       { returnDocument: "after" }
     );
+    const duration = Date.now() - startTime;
+    console.log(`[DB] updateDietaryRestrictions: ${duration}ms`);
 
     if (!result) {
       throw new Error("User not found");

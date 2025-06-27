@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useListRecipes, useDeleteRecipe } from "@/api/recipes";
+import { useListRecipes, useDeleteRecipe, Recipe } from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,12 +47,12 @@ export default function Recipes() {
   };
 
   // Helper function to get recipe name
-  const getRecipeName = (recipe: any) => {
+  const getRecipeName = (recipe: Recipe) => {
     return recipe.userGivenName || recipe.generatedName;
   };
 
   // Helper function to get recipe description from the most recent version
-  const getRecipeDescription = (recipe: any) => {
+  const getRecipeDescription = (recipe: Recipe) => {
     if (recipe.recentVersions && recipe.recentVersions.length > 0) {
       return recipe.recentVersions[0].description;
     }
@@ -60,7 +60,7 @@ export default function Recipes() {
   };
 
   // Helper function to get total time (prep + cook)
-  const getTotalTime = (recipe: any) => {
+  const getTotalTime = (recipe: Recipe) => {
     if (recipe.recentVersions && recipe.recentVersions.length > 0) {
       const version = recipe.recentVersions[0];
       return formatTime(version.prepTime + version.cookTime);
@@ -69,7 +69,7 @@ export default function Recipes() {
   };
 
   // Handle deleting a recipe
-  const handleDeleteRecipe = (recipe: any) => {
+  const handleDeleteRecipe = (recipe: Recipe) => {
     const recipeName = getRecipeName(recipe);
 
     Alert.alert(
@@ -122,7 +122,7 @@ export default function Recipes() {
   };
 
   // Render individual recipe item
-  const renderRecipeItem = ({ item: recipe }: { item: any }) => (
+  const renderRecipeItem = ({ item: recipe }: { item: Recipe }) => (
     <TouchableOpacity
       style={styles.recipeCard}
       onPress={() => router.push(`/recipe/${recipe.id}`)}

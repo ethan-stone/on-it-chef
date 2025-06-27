@@ -11,6 +11,7 @@ let recipesService: RecipeService | null = null;
 export async function init(): Promise<Root> {
   if (!mongoClient) {
     mongoClient = new MongoClient(Resource.MongoUrl.value);
+    await mongoClient.connect();
   }
 
   if (!userService) {
