@@ -329,10 +329,55 @@ export function useForkRecipe() {
   return mutation;
 }
 
-export type RecipeVersion = NonNullable<
-  NonNullable<
-    NonNullable<ReturnType<typeof useGetRecipeDetails>>["data"]
-  >["pages"][number]
+export async function fetchRecipeDetails(
+  recipeId: string,
+  page: number,
+  getToken: () => Promise<string | null>
+) {
+  const startTime = Date.now();
+  console.log(
+    `🔄 [API] Starting recipe details fetch (recipe: ${recipeId}, page: ${page})...`
+  );
+
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error("No token");
+  }
+
+  const response = await client.api.v1["recipes.getRecipeDetails"].$get(
+    {
+      query: {
+        recipeId,
+        page: page.toString(),
+        limit: "20",
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (response.status !== 200) {
+    throw new Error("Failed to get recipe details");
+  }
+
+  const details = await response.json();
+
+  const endTime = Date.now();
+  console.log(
+    `✅ [API] Recipe details fetch (recipe: ${recipeId}, page: ${page}) completed in ${
+      endTime - startTime
+    }ms`
+  );
+
+  return details;
+}
+
+export type RecipeVersion = Awaited<
+  ReturnType<typeof fetchRecipeDetails>
 >["versions"]["versions"][number];
 
 export function useGetRecipeDetails(recipeId: string) {
@@ -349,46 +394,7 @@ export function useGetRecipeDetails(recipeId: string) {
   const query = useInfiniteQuery({
     queryKey: ["recipe-details", recipeId],
     queryFn: async ({ pageParam = 1 }) => {
-      const startTime = Date.now();
-      console.log(
-        `🔄 [API] Starting recipe details fetch (recipe: ${recipeId}, page: ${pageParam})...`
-      );
-
-      const token = await getToken();
-
-      if (!token) {
-        throw new Error("No token");
-      }
-
-      const response = await client.api.v1["recipes.getRecipeDetails"].$get(
-        {
-          query: {
-            recipeId,
-            page: pageParam.toString(),
-            limit: "10",
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status !== 200) {
-        throw new Error("Failed to get recipe details");
-      }
-
-      const details = await response.json();
-
-      const endTime = Date.now();
-      console.log(
-        `✅ [API] Recipe details fetch (recipe: ${recipeId}, page: ${pageParam}) completed in ${
-          endTime - startTime
-        }ms`
-      );
-
-      return details;
+      return fetchRecipeDetails(recipeId, pageParam, getToken);
     },
     getNextPageParam: (lastPage, allPages) => {
       // If there are more versions, return the next page number

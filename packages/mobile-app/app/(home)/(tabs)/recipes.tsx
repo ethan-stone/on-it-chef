@@ -3,21 +3,28 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
-  FlatList,
   Alert,
+  SafeAreaView,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { useListRecipes, useDeleteRecipe, Recipe } from "@/api/recipes";
+import {
+  useListRecipes,
+  useDeleteRecipe,
+  Recipe,
+  fetchRecipeDetails,
+} from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/clerk-expo";
+import { ThemedView } from "@/components/ThemedView";
 
 export default function Recipes() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const {
@@ -126,6 +133,29 @@ export default function Recipes() {
     <TouchableOpacity
       style={styles.recipeCard}
       onPress={() => router.push(`/recipe/${recipe.id}`)}
+      onPressIn={async () => {
+        console.log(`🔄 [PREFETCH] Starting prefetch for recipe ${recipe.id}`);
+        await queryClient.prefetchInfiniteQuery({
+          queryKey: ["recipe-details", recipe.id],
+          queryFn: async ({ pageParam = 1 }) => {
+            return fetchRecipeDetails(recipe.id, pageParam, getToken);
+          },
+          getNextPageParam: (
+            lastPage: Awaited<ReturnType<typeof fetchRecipeDetails>>, // for some reason this needs to be explicitly typed
+            allPages: Awaited<ReturnType<typeof fetchRecipeDetails>>[] // for some reason this needs to be explicitly typed
+          ) => {
+            // If there are more versions, return the next page number
+            if (lastPage.versions.hasMore) {
+              return allPages.length + 1;
+            }
+            return undefined; // No more pages
+          },
+          initialPageParam: 1,
+        });
+        console.log(
+          `✅ [PREFETCH] Successfully prefetched recipe ${recipe.id}`
+        );
+      }}
     >
       <View style={styles.recipeContent}>
         <View style={styles.recipeHeader}>
