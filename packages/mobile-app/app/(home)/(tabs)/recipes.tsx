@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 import {
   StyleSheet,
   View,
@@ -6,21 +6,12 @@ import {
   SafeAreaView,
   ActivityIndicator,
   FlatList,
-  Modal,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import {
-  useListRecipes,
-  useCreateRecipe,
-  useDeleteRecipe,
-} from "@/api/recipes";
-import { useGetLoggedInUser } from "@/api/users";
+import { useListRecipes, useDeleteRecipe } from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,26 +28,7 @@ export default function Recipes() {
     hasNextPage,
     isFetchingNextPage,
   } = useListRecipes();
-  const { data: user } = useGetLoggedInUser();
-  const createRecipeMutation = useCreateRecipe();
   const deleteRecipeMutation = useDeleteRecipe();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [recipeMessage, setRecipeMessage] = useState("");
-  const [inputError, setInputError] = useState("");
-  const [includeDietaryRestrictions, setIncludeDietaryRestrictions] =
-    useState(true);
-  const textInputRef = useRef<TextInput>(null);
-
-  // Auto-focus the text input when modal opens
-  useEffect(() => {
-    if (modalVisible) {
-      // Small delay to ensure modal is fully rendered
-      const timer = setTimeout(() => {
-        textInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [modalVisible]);
 
   // Flatten all pages of recipes into a single array
   const allRecipes = data?.pages.flatMap((page) => page.recipes || []) || [];
@@ -94,30 +66,6 @@ export default function Recipes() {
       return formatTime(version.prepTime + version.cookTime);
     }
     return "Time not available";
-  };
-
-  // Handle creating a new recipe
-  const handleCreateRecipe = async () => {
-    setInputError("");
-    if (!recipeMessage.trim()) {
-      setInputError("Please describe the recipe you want.");
-      return;
-    }
-    try {
-      const newRecipe = await createRecipeMutation.mutateAsync({
-        visibility: "private",
-        message: recipeMessage.trim(),
-        includeDietaryRestrictions: includeDietaryRestrictions,
-      });
-      setModalVisible(false);
-      setRecipeMessage("");
-      setIncludeDietaryRestrictions(true);
-      // Navigate to the new recipe's detail page
-      router.push(`/recipe/${newRecipe.id}`);
-    } catch (error) {
-      console.error(error);
-      showToast("Failed to create recipe. Please try again.", "error");
-    }
   };
 
   // Handle deleting a recipe
@@ -304,167 +252,13 @@ export default function Recipes() {
         {/* Add Recipe Button */}
         <View style={styles.addButtonContainer}>
           <TouchableOpacity
-            style={[
-              styles.addButton,
-              createRecipeMutation.isPending && styles.addButtonDisabled,
-            ]}
-            onPress={() => setModalVisible(true)}
-            disabled={createRecipeMutation.isPending}
+            style={styles.addButton}
+            onPress={() => router.push("/create-recipe")}
           >
-            {createRecipeMutation.isPending ? (
-              <ActivityIndicator size="small" color="#F8F6F1" />
-            ) : (
-              <Ionicons name="add" size={24} color="#F8F6F1" />
-            )}
-            <ThemedText style={styles.addButtonText}>
-              {createRecipeMutation.isPending
-                ? "Creating..."
-                : "Add New Recipe"}
-            </ThemedText>
+            <Ionicons name="add" size={24} color="#F8F6F1" />
+            <ThemedText style={styles.addButtonText}>Add New Recipe</ThemedText>
           </TouchableOpacity>
         </View>
-        {/* Create Recipe Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setRecipeMessage("");
-            setInputError("");
-            setIncludeDietaryRestrictions(true);
-          }}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <View style={styles.modalContainer}>
-                  {/* Modal Header */}
-                  <View style={styles.modalHeader}>
-                    <Ionicons name="restaurant" size={28} color="#8B7355" />
-                    <ThemedText style={styles.modalTitle}>
-                      Create New Recipe
-                    </ThemedText>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setModalVisible(false);
-                        setRecipeMessage("");
-                        setInputError("");
-                        setIncludeDietaryRestrictions(true);
-                      }}
-                      style={styles.closeButton}
-                    >
-                      <Ionicons name="close" size={24} color="#8B7355" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Modal Content */}
-                  <View style={styles.modalContent}>
-                    <ThemedText style={styles.modalSubtitle}>
-                      Describe the recipe you&apos;d like to create
-                    </ThemedText>
-
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="e.g., A spicy chicken curry with coconut milk and fresh herbs"
-                      placeholderTextColor="#A69B8D"
-                      value={recipeMessage}
-                      onChangeText={(text) => {
-                        setRecipeMessage(text);
-                        if (inputError) setInputError("");
-                      }}
-                      multiline
-                      numberOfLines={4}
-                      textAlignVertical="top"
-                      ref={textInputRef}
-                    />
-
-                    {inputError ? (
-                      <View style={styles.errorMessageContainer}>
-                        <Ionicons
-                          name="alert-circle"
-                          size={16}
-                          color="#D32F2F"
-                        />
-                        <ThemedText style={styles.errorMessageText}>
-                          {inputError}
-                        </ThemedText>
-                      </View>
-                    ) : null}
-
-                    {user?.dietaryRestrictions && (
-                      <View style={styles.dietaryToggleContainer}>
-                        <View style={styles.dietaryToggleContent}>
-                          <Ionicons
-                            name="restaurant-outline"
-                            size={16}
-                            color="#8B7355"
-                          />
-                          <ThemedText style={styles.dietaryToggleText}>
-                            Include dietary restrictions
-                          </ThemedText>
-                        </View>
-                        <TouchableOpacity
-                          style={[
-                            styles.toggleSwitch,
-                            includeDietaryRestrictions &&
-                              styles.toggleSwitchActive,
-                          ]}
-                          onPress={() =>
-                            setIncludeDietaryRestrictions(
-                              !includeDietaryRestrictions
-                            )
-                          }
-                        >
-                          <View
-                            style={[
-                              styles.toggleKnob,
-                              includeDietaryRestrictions &&
-                                styles.toggleKnobActive,
-                            ]}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Modal Actions */}
-                  <View style={styles.modalActions}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setModalVisible(false);
-                        setRecipeMessage("");
-                        setInputError("");
-                        setIncludeDietaryRestrictions(true);
-                      }}
-                    >
-                      <ThemedText style={styles.cancelButtonText}>
-                        Cancel
-                      </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.createButton]}
-                      onPress={handleCreateRecipe}
-                      disabled={createRecipeMutation.isPending}
-                    >
-                      {createRecipeMutation.isPending ? (
-                        <ActivityIndicator size="small" color="#F8F6F1" />
-                      ) : (
-                        <Ionicons name="add" size={20} color="#F8F6F1" />
-                      )}
-                      <ThemedText style={styles.createButtonText}>
-                        {createRecipeMutation.isPending
-                          ? "Creating..."
-                          : "Create"}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
       </ThemedView>
     </SafeAreaView>
   );
@@ -645,10 +439,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
   },
-  addButtonDisabled: {
-    backgroundColor: "#A8A8A8", // Grayed out color
-    opacity: 0.6,
-  },
   addButtonText: {
     color: "#F8F6F1", // Light book page color
     fontSize: 16,
@@ -668,162 +458,5 @@ const styles = StyleSheet.create({
   },
   recipeListContent: {
     paddingBottom: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 100,
-  },
-  modalContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    width: "100%",
-    maxWidth: 400,
-    maxHeight: "70%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E0D0",
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#5D4E37",
-    flex: 1,
-    marginLeft: 12,
-  },
-  closeButton: {
-    padding: 4,
-    borderRadius: 20,
-    backgroundColor: "#F8F6F1",
-  },
-  modalContent: {
-    marginBottom: 24,
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    color: "#8B7355",
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  modalInput: {
-    height: 120,
-    borderWidth: 2,
-    borderColor: "#E8E0D0",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: "#5D4E37",
-    backgroundColor: "#F8F6F1",
-    marginBottom: 12,
-    textAlignVertical: "top",
-  },
-  modalHint: {
-    color: "#8B7355",
-    fontSize: 14,
-    fontStyle: "italic",
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    flex: 1,
-  },
-  cancelButton: {
-    backgroundColor: "#F8F6F1",
-    borderWidth: 2,
-    borderColor: "#E8E0D0",
-  },
-  createButton: {
-    backgroundColor: "#8B7355",
-  },
-  cancelButtonText: {
-    color: "#8B7355",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  createButtonText: {
-    color: "#F8F6F1",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
-  dietaryToggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  dietaryToggleContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dietaryToggleText: {
-    marginLeft: 8,
-    color: "#8B7355",
-    fontSize: 14,
-  },
-  toggleSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#E8E0D0",
-    padding: 2,
-    justifyContent: "center",
-    marginLeft: 12,
-  },
-  toggleSwitchActive: {
-    backgroundColor: "#8B7355",
-  },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleKnobActive: {
-    transform: [{ translateX: 20 }],
-  },
-  errorMessageContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  errorMessageText: {
-    marginLeft: 8,
-    color: "#D32F2F",
-    fontSize: 14,
   },
 });

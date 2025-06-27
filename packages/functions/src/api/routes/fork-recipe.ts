@@ -20,6 +20,7 @@ const route = createRoute({
             userGivenName: z.string().optional(),
             visibility: z.enum(["public", "private"]).default("private"),
             includeDietaryRestrictions: z.boolean().default(true),
+            customDietaryRestrictions: z.string().optional(),
           }),
         },
       },
@@ -84,6 +85,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     userGivenName,
     visibility,
     includeDietaryRestrictions,
+    customDietaryRestrictions,
   } = c.req.valid("json");
 
   try {

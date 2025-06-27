@@ -21,7 +21,6 @@ import {
   useGenerateRecipeVersion,
   useListRecipeVersions,
   useListRecipePrompts,
-  useForkRecipe,
   RecipeVersion,
 } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
@@ -37,14 +36,8 @@ export default function RecipeDetail() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newVersionMessage, setNewVersionMessage] = useState("");
   const [inputError, setInputError] = useState("");
-  const [forkModalVisible, setForkModalVisible] = useState(false);
-  const [forkPrompt, setForkPrompt] = useState("");
-  const [forkInputError, setForkInputError] = useState("");
-  const [includeDietaryRestrictions, setIncludeDietaryRestrictions] =
-    useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
   const newVersionInputRef = useRef<TextInput>(null);
-  const forkInputRef = useRef<TextInput>(null);
 
   const {
     data: versionsData,
@@ -59,8 +52,6 @@ export default function RecipeDetail() {
 
   const generateVersionMutation = useGenerateRecipeVersion();
   const { data: user } = useGetLoggedInUser();
-
-  const forkRecipeMutation = useForkRecipe();
 
   // Flatten all pages of versions into a single array
   const allVersions = useMemo(
@@ -92,17 +83,6 @@ export default function RecipeDetail() {
       return () => clearTimeout(timer);
     }
   }, [modalVisible]);
-
-  // Auto-focus the fork input when fork modal opens
-  useEffect(() => {
-    if (forkModalVisible) {
-      // Small delay to ensure modal is fully rendered
-      const timer = setTimeout(() => {
-        forkInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [forkModalVisible]);
 
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -164,36 +144,10 @@ ${version.instructions
   };
 
   const handleForkRecipe = async () => {
-    setForkInputError("");
-    if (!forkPrompt.trim()) {
-      setForkInputError("Please describe the changes you want to make.");
-      return;
-    }
-
     if (!selectedVersion) return;
 
-    try {
-      const forkedRecipe = await forkRecipeMutation.mutateAsync({
-        sourceRecipeId: id as string,
-        sourceVersionId: selectedVersion.id,
-        userPrompt: forkPrompt.trim(),
-        visibility: "private",
-        includeDietaryRestrictions: includeDietaryRestrictions,
-      });
-
-      setForkModalVisible(false);
-      setForkPrompt("");
-      setForkInputError("");
-      setIncludeDietaryRestrictions(true);
-
-      showToast("Recipe forked successfully!", "success");
-
-      // Navigate to the new forked recipe, replacing the current screen
-      router.replace(`/recipe/${forkedRecipe.id}`);
-    } catch (error) {
-      console.error("Failed to fork recipe:", error);
-      showToast("Failed to fork recipe. Please try again.", "error");
-    }
+    // Navigate to the fork recipe page
+    router.push(`/fork-recipe?id=${id}&versionId=${selectedVersion.id}`);
   };
 
   const handleGenerateVersion = async () => {
@@ -372,7 +326,7 @@ ${version.instructions
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.forkButton}
-                      onPress={() => setForkModalVisible(true)}
+                      onPress={handleForkRecipe}
                     >
                       <Ionicons
                         name="git-branch-outline"
@@ -616,148 +570,6 @@ ${version.instructions
                           </ThemedText>
                         </View>
                       )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-
-        {/* Fork Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={forkModalVisible}
-          onRequestClose={() => {
-            setForkModalVisible(false);
-            setForkPrompt("");
-            setForkInputError("");
-            setIncludeDietaryRestrictions(true);
-          }}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <View style={styles.modalContainer}>
-                  {/* Modal Header */}
-                  <View style={styles.modalHeader}>
-                    <Ionicons name="restaurant" size={28} color="#8B7355" />
-                    <ThemedText style={styles.modalTitle}>
-                      Fork This Recipe
-                    </ThemedText>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setForkModalVisible(false);
-                        setForkPrompt("");
-                        setForkInputError("");
-                        setIncludeDietaryRestrictions(true);
-                      }}
-                      style={styles.closeButton}
-                    >
-                      <Ionicons name="close" size={24} color="#8B7355" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Modal Content */}
-                  <View style={styles.modalContent}>
-                    <ThemedText style={styles.modalSubtitle}>
-                      Describe the changes you&apos;d like to make to this
-                      recipe
-                    </ThemedText>
-
-                    <TextInput
-                      style={styles.modalInput}
-                      placeholder="e.g., Make it vegetarian, add more spice, reduce cooking time..."
-                      placeholderTextColor="#A69B8D"
-                      value={forkPrompt}
-                      onChangeText={(text) => {
-                        setForkPrompt(text);
-                        if (forkInputError) setForkInputError("");
-                      }}
-                      multiline
-                      numberOfLines={4}
-                      textAlignVertical="top"
-                      ref={forkInputRef}
-                    />
-
-                    {forkInputError ? (
-                      <View style={styles.errorMessageContainer}>
-                        <Ionicons
-                          name="alert-circle"
-                          size={16}
-                          color="#D32F2F"
-                        />
-                        <ThemedText style={styles.errorMessageText}>
-                          {forkInputError}
-                        </ThemedText>
-                      </View>
-                    ) : null}
-
-                    {user?.dietaryRestrictions && (
-                      <View style={styles.dietaryToggleContainer}>
-                        <View style={styles.dietaryToggleContent}>
-                          <Ionicons
-                            name="restaurant-outline"
-                            size={16}
-                            color="#8B7355"
-                          />
-                          <ThemedText style={styles.dietaryToggleText}>
-                            Include dietary restrictions
-                          </ThemedText>
-                        </View>
-                        <TouchableOpacity
-                          style={[
-                            styles.toggleSwitch,
-                            includeDietaryRestrictions &&
-                              styles.toggleSwitchActive,
-                          ]}
-                          onPress={() =>
-                            setIncludeDietaryRestrictions(
-                              !includeDietaryRestrictions
-                            )
-                          }
-                        >
-                          <View
-                            style={[
-                              styles.toggleKnob,
-                              includeDietaryRestrictions &&
-                                styles.toggleKnobActive,
-                            ]}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Modal Actions */}
-                  <View style={styles.modalActions}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setForkModalVisible(false);
-                        setForkPrompt("");
-                        setForkInputError("");
-                        setIncludeDietaryRestrictions(true);
-                      }}
-                    >
-                      <ThemedText style={styles.cancelButtonText}>
-                        Cancel
-                      </ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.createButton]}
-                      onPress={handleForkRecipe}
-                      disabled={forkRecipeMutation.isPending}
-                    >
-                      {forkRecipeMutation.isPending ? (
-                        <ActivityIndicator size="small" color="#F8F6F1" />
-                      ) : (
-                        <Ionicons name="add" size={20} color="#F8F6F1" />
-                      )}
-                      <ThemedText style={styles.createButtonText}>
-                        {forkRecipeMutation.isPending ? "Forking..." : "Fork"}
-                      </ThemedText>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1220,58 +1032,5 @@ const styles = StyleSheet.create({
     color: "#8B7355",
     fontSize: 14,
     marginLeft: 8,
-  },
-  errorMessageContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  errorMessageText: {
-    color: "#D32F2F",
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  dietaryToggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  dietaryToggleContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dietaryToggleText: {
-    marginLeft: 8,
-    color: "#8B7355",
-    fontSize: 14,
-  },
-  toggleSwitch: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#E8E0D0",
-    padding: 2,
-    justifyContent: "center",
-    marginLeft: 12,
-  },
-  toggleSwitchActive: {
-    backgroundColor: "#8B7355",
-  },
-  toggleKnob: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleKnobActive: {
-    transform: [{ translateX: 20 }],
   },
 });

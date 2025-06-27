@@ -88,6 +88,7 @@ export function useCreateRecipe() {
       userGivenName?: string;
       visibility?: "public" | "private";
       includeDietaryRestrictions?: boolean;
+      customDietaryRestrictions?: string;
       message: string;
     }) => {
       const token = await getToken();
@@ -359,6 +360,7 @@ export function useForkRecipe() {
       userGivenName?: string;
       visibility?: "public" | "private";
       includeDietaryRestrictions?: boolean;
+      customDietaryRestrictions?: string;
     }) => {
       const token = await getToken();
 
