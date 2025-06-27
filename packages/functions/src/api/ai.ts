@@ -123,7 +123,7 @@ Generate a recipe based on the user's request. Respond with ONLY the JSON object
 
   try {
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: fullPrompt,
     });
     const text = result.text;
@@ -195,7 +195,7 @@ Generate version ${nextVersion} of this recipe based on the user's request and p
 
   try {
     const result = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: fullPrompt,
     });
     const text = result.text;
@@ -221,6 +221,97 @@ Generate version ${nextVersion} of this recipe based on the user's request and p
     console.error("Error generating recipe version:", error);
     throw new Error(
       `Failed to generate recipe version: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+const FORK_RECIPE_PROMPT = `You are a professional chef and recipe creator. Your task is to create a new recipe based on an existing recipe and the user's specific request for adaptation.
+
+IMPORTANT: You must respond with ONLY valid JSON that exactly matches this schema:
+{
+  "generatedName": "string - A catchy, descriptive name for the new recipe",
+  "version": 1,
+  "description": "string - A brief, appetizing description of the new dish",
+  "prepTime": number - Preparation time in minutes,
+  "cookTime": number - Cooking time in minutes,
+  "servings": number - Number of servings this recipe makes,
+  "ingredients": ["string"] - Array of ingredients with measurements and preparation notes,
+  "instructions": ["string"] - Array of step-by-step cooking instructions
+}
+
+Guidelines:
+- Use the source recipe as inspiration but create a distinct new recipe
+- Incorporate the user's adaptation request while maintaining the essence of the original
+- Be creative but practical with recipe names
+- Write clear, detailed descriptions that make the dish sound appealing
+- Provide accurate prep and cook times
+- Include all necessary ingredients with proper measurements
+- Write step-by-step instructions that are easy to follow
+- Ensure the recipe is realistic and achievable for home cooks
+- Make sure all times are in minutes
+- Keep ingredient lists and instructions concise but complete
+- Do not include any text outside the JSON structure
+
+DIETARY RESTRICTIONS: If dietary restrictions are provided, you MUST strictly adhere to them. Do not include any ingredients or cooking methods that violate these restrictions.
+
+Source Recipe Context:
+`;
+
+export async function generateForkedRecipe(
+  userPrompt: string,
+  sourceRecipeVersion: RecipeVersion,
+  dietaryRestrictions?: string | null
+): Promise<AIRecipeResponse> {
+  const sourceContext = `
+Source Recipe: ${sourceRecipeVersion.generatedName}
+Description: ${sourceRecipeVersion.description}
+Prep Time: ${sourceRecipeVersion.prepTime} minutes
+Cook Time: ${sourceRecipeVersion.cookTime} minutes
+Servings: ${sourceRecipeVersion.servings}
+Ingredients: ${sourceRecipeVersion.ingredients.join(", ")}
+Instructions: ${sourceRecipeVersion.instructions.join(" | ")}
+
+User Adaptation Request: ${userPrompt}
+`;
+
+  const dietaryContext = dietaryRestrictions
+    ? `\n\nIMPORTANT: The user has the following dietary restrictions: ${dietaryRestrictions}. Please ensure the new recipe strictly adheres to these restrictions.`
+    : "";
+
+  const fullPrompt = `${FORK_RECIPE_PROMPT}${sourceContext}${dietaryContext}
+
+Create a new recipe based on the source recipe and the user's adaptation request. Respond with ONLY the JSON object:`;
+
+  try {
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: fullPrompt,
+    });
+    const text = result.text;
+
+    if (!text) {
+      throw new Error("No response from AI");
+    }
+
+    // Clean the response - remove any markdown formatting if present
+    let jsonText = text.trim();
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.replace(/^```json\n/, "").replace(/\n```$/, "");
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```\n/, "").replace(/\n```$/, "");
+    }
+
+    // Parse and validate the JSON response
+    const parsed = JSON.parse(jsonText);
+    const validated = AIRecipeResponse.parse(parsed);
+
+    return validated;
+  } catch (error) {
+    console.error("Error generating forked recipe:", error);
+    throw new Error(
+      `Failed to generate forked recipe: ${
         error instanceof Error ? error.message : "Unknown error"
       }`
     );

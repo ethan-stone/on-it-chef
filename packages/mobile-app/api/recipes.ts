@@ -9,6 +9,12 @@ import {
 import { useAuth } from "@clerk/clerk-expo";
 import { useEffect } from "react";
 
+export type Recipe = NonNullable<
+  NonNullable<
+    NonNullable<ReturnType<typeof useListRecipes>>["data"]
+  >["pages"][number]
+>["recipes"][number];
+
 export function useListRecipes() {
   const { replace } = useRouter();
 
@@ -175,6 +181,12 @@ export function useGenerateRecipeVersion() {
   return mutation;
 }
 
+export type RecipeVersion = NonNullable<
+  NonNullable<
+    NonNullable<ReturnType<typeof useListRecipeVersions>>["data"]
+  >["pages"][number]
+>["versions"][number];
+
 export function useListRecipeVersions(recipeId: string) {
   const { replace } = useRouter();
 
@@ -321,8 +333,63 @@ export function useListRecipePrompts(recipeId: string) {
 
       return prompts;
     },
-    enabled: isLoaded && !!userId,
+    enabled: isLoaded && !!userId && !!recipeId,
   });
 
   return query;
+}
+
+export function useForkRecipe() {
+  const { replace } = useRouter();
+  const queryClient = useQueryClient();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
+
+  const mutation = useMutation({
+    mutationFn: async (data: {
+      sourceRecipeId: string;
+      sourceVersionId: string;
+      userPrompt: string;
+      userGivenName?: string;
+      visibility?: "public" | "private";
+      includeDietaryRestrictions?: boolean;
+    }) => {
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.forkRecipe"].$post(
+        {
+          json: data,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to fork recipe");
+      }
+
+      const recipe = await response.json();
+
+      return recipe;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch recipes list
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
+
+  return mutation;
 }

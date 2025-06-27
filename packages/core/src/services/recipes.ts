@@ -366,4 +366,97 @@ export class RecipeService {
       await session.endSession();
     }
   }
+
+  async forkRecipe(
+    sourceRecipeId: string,
+    sourceVersionId: string,
+    userId: string,
+    userPrompt: string,
+    forkedRecipeData: {
+      generatedName: string;
+      description: string;
+      prepTime: number;
+      cookTime: number;
+      servings: number;
+      ingredients: string[];
+      instructions: string[];
+    },
+    userGivenName?: string,
+    visibility: "public" | "private" = "private",
+    dietaryRestrictions?: string,
+    includeDietaryRestrictions: boolean = true
+  ): Promise<Recipe> {
+    // Get the source recipe and version
+    const sourceRecipe = await this.getRecipe(sourceRecipeId);
+    if (!sourceRecipe) {
+      throw new Error("Source recipe not found");
+    }
+
+    const sourceVersion = sourceRecipe.recentVersions.find(
+      (v) => v.id === sourceVersionId
+    );
+    if (!sourceVersion) {
+      throw new Error("Source recipe version not found");
+    }
+
+    const recipeId = this.uid("recipe");
+    const recipeVersionId = this.uid("recipe_ver");
+    const now = new Date();
+
+    // Create a new recipe version based on the provided recipe data
+    const mongoRecipeVersion: MongoRecipeVersion = {
+      _id: recipeVersionId,
+      recipeId,
+      userId,
+      generatedName: forkedRecipeData.generatedName,
+      description: forkedRecipeData.description,
+      prepTime: forkedRecipeData.prepTime,
+      cookTime: forkedRecipeData.cookTime,
+      servings: forkedRecipeData.servings,
+      ingredients: forkedRecipeData.ingredients,
+      instructions: forkedRecipeData.instructions,
+      version: 1, // This is version 1 of the new recipe
+      createdAt: now,
+    };
+
+    // Create a prompt indicating this was forked from another recipe
+    const mongoRecipePrompt: MongoRecipePrompt = {
+      _id: this.uid("recipe_prompt"),
+      recipeId,
+      userId,
+      message: `Forked from "${sourceRecipe.generatedName}" (version ${sourceVersion.version}) with adaptation: ${userPrompt}`,
+      generatedVersion: mongoRecipeVersion._id,
+      createdAt: now,
+    };
+
+    // Create the new recipe
+    const mongoRecipe: MongoRecipe = {
+      _id: recipeId,
+      userId,
+      userGivenName: userGivenName || undefined,
+      generatedName: forkedRecipeData.generatedName,
+      visibility,
+      dietaryRestrictions,
+      includeDietaryRestrictions,
+      recentVersions: [mongoRecipeVersion],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const session = this.client.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await this.recipesColl.insertOne(mongoRecipe);
+        await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
+      });
+
+      return fromMongo.recipe(mongoRecipe);
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
 }
