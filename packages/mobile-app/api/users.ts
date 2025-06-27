@@ -42,6 +42,10 @@ export function useGetLoggedInUser() {
       return user;
     },
     enabled: isLoaded && !!userId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - user data stays fresh longer
+    gcTime: 30 * 60 * 1000, // 30 minutes - user data stays in cache longer
+    refetchOnMount: false, // Don't refetch if data is already in cache
+    refetchOnWindowFocus: false,
   });
 
   return query;

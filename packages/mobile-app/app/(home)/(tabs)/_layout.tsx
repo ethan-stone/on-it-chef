@@ -1,7 +1,11 @@
 import { Tabs } from "expo-router/tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useGetLoggedInUser } from "@/api/users";
 
 export default function TabsLayout() {
+  // Prefetch user data to ensure dietary restrictions are available
+  useGetLoggedInUser();
+
   return (
     <Tabs
       screenOptions={{

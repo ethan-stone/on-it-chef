@@ -9,6 +9,8 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -36,20 +38,32 @@ export default function ForkRecipe() {
 
   const forkInputRef = useRef<TextInput>(null);
   const customDietaryRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Handle keyboard appearance
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        // Scroll to the custom dietary input if it's focused
+        if (showCustomDietary) {
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+    };
+  }, [showCustomDietary]);
 
   // Get the source version
   const allVersions =
     versionsData?.pages.flatMap((page) => page.versions || []) || [];
   const sourceVersion =
     allVersions.find((v) => v.id === versionId) || allVersions[0];
-
-  // Auto-focus the fork input when page loads
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      forkInputRef.current?.focus();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleForkRecipe = async () => {
     setInputError("");
@@ -117,261 +131,324 @@ export default function ForkRecipe() {
         </View>
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingView}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 20}
           >
-            {/* Source Recipe Info */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="restaurant" size={24} color="#8B7355" />
-                <ThemedText style={styles.sectionTitle}>
-                  Source Recipe
-                </ThemedText>
-              </View>
-              <View style={styles.sourceRecipeCard}>
-                <ThemedText style={styles.sourceRecipeTitle}>
-                  {sourceVersion.generatedName}
-                </ThemedText>
-                <ThemedText style={styles.sourceRecipeDescription}>
-                  {sourceVersion.description}
-                </ThemedText>
-                <View style={styles.sourceRecipeMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={16} color="#8B7355" />
-                    <ThemedText style={styles.metaText}>
-                      {sourceVersion.prepTime + sourceVersion.cookTime} min
-                    </ThemedText>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="people-outline" size={16} color="#8B7355" />
-                    <ThemedText style={styles.metaText}>
-                      {sourceVersion.servings} servings
-                    </ThemedText>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons
-                      name="git-branch-outline"
-                      size={16}
-                      color="#8B7355"
-                    />
-                    <ThemedText style={styles.metaText}>
-                      v{sourceVersion.version}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Fork Description Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="create-outline" size={24} color="#8B7355" />
-                <ThemedText style={styles.sectionTitle}>
-                  Describe Changes
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.sectionDescription}>
-                Describe the changes you&apos;d like to make to this recipe. Be
-                specific about what you want to modify.
-              </ThemedText>
-              <TextInput
-                style={styles.forkInput}
-                placeholder="e.g., Make it vegetarian by replacing chicken with tofu, add more vegetables, reduce the spice level..."
-                placeholderTextColor="#A69B8D"
-                value={forkPrompt}
-                onChangeText={(text) => {
-                  setForkPrompt(text);
-                  if (inputError) setInputError("");
-                }}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                ref={forkInputRef}
-              />
-              {inputError ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={16} color="#D32F2F" />
-                  <ThemedText style={styles.errorText}>{inputError}</ThemedText>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Dietary Restrictions Section */}
-            {user?.dietaryRestrictions && (
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={[styles.contentContainer]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ref={scrollViewRef}
+            >
+              {/* Source Recipe Info */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons
-                    name="restaurant-outline"
-                    size={24}
-                    color="#8B7355"
-                  />
+                  <Ionicons name="restaurant" size={24} color="#8B7355" />
                   <ThemedText style={styles.sectionTitle}>
-                    Dietary Restrictions
+                    Source Recipe
+                  </ThemedText>
+                </View>
+                <View style={styles.sourceRecipeCard}>
+                  <ThemedText style={styles.sourceRecipeTitle}>
+                    {sourceVersion.generatedName}
+                  </ThemedText>
+                  <ThemedText style={styles.sourceRecipeDescription}>
+                    {sourceVersion.description}
+                  </ThemedText>
+                  <View style={styles.sourceRecipeMeta}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={16} color="#8B7355" />
+                      <ThemedText style={styles.metaText}>
+                        {sourceVersion.prepTime + sourceVersion.cookTime} min
+                      </ThemedText>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons
+                        name="people-outline"
+                        size={16}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.metaText}>
+                        {sourceVersion.servings} servings
+                      </ThemedText>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons
+                        name="git-branch-outline"
+                        size={16}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.metaText}>
+                        v{sourceVersion.version}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Fork Description Section */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="create-outline" size={24} color="#8B7355" />
+                  <ThemedText style={styles.sectionTitle}>
+                    Describe Changes
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.sectionDescription}>
-                  Choose how to handle dietary restrictions for this forked
-                  recipe.
+                  Describe the changes you&apos;d like to make to this recipe.
+                  Be specific about what you want to modify.
                 </ThemedText>
-
-                {/* Default Restrictions Option */}
-                <TouchableOpacity
-                  style={[
-                    styles.dietaryOption,
-                    includeDietaryRestrictions &&
-                      !showCustomDietary &&
-                      styles.dietaryOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setIncludeDietaryRestrictions(true);
-                    setShowCustomDietary(false);
+                <TextInput
+                  style={styles.forkInput}
+                  placeholder="e.g., Make it vegetarian by replacing chicken with tofu, add more vegetables, reduce the spice level..."
+                  placeholderTextColor="#A69B8D"
+                  value={forkPrompt}
+                  onChangeText={(text) => {
+                    setForkPrompt(text);
+                    if (inputError) setInputError("");
                   }}
-                >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={
-                        includeDietaryRestrictions && !showCustomDietary
-                          ? "#8B7355"
-                          : "#E8E0D0"
-                      }
-                    />
-                    <ThemedText
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  ref={forkInputRef}
+                />
+                {inputError ? (
+                  <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle" size={16} color="#D32F2F" />
+                    <ThemedText style={styles.errorText}>
+                      {inputError}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Dietary Restrictions Section */}
+              {user ? (
+                user.dietaryRestrictions ? (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={24}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.sectionTitle}>
+                        Dietary Restrictions
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.sectionDescription}>
+                      Choose how to handle dietary restrictions for this forked
+                      recipe.
+                    </ThemedText>
+
+                    {/* Default Restrictions Option */}
+                    <TouchableOpacity
                       style={[
-                        styles.dietaryOptionTitle,
+                        styles.dietaryOption,
                         includeDietaryRestrictions &&
                           !showCustomDietary &&
-                          styles.dietaryOptionTitleSelected,
+                          styles.dietaryOptionSelected,
                       ]}
+                      onPress={() => {
+                        setIncludeDietaryRestrictions(true);
+                        setShowCustomDietary(false);
+                      }}
                     >
-                      Use my default restrictions
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    {user.dietaryRestrictions}
-                  </ThemedText>
-                </TouchableOpacity>
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={
+                            includeDietaryRestrictions && !showCustomDietary
+                              ? "#8B7355"
+                              : "#E8E0D0"
+                          }
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            includeDietaryRestrictions &&
+                              !showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          Use my default restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        {user.dietaryRestrictions}
+                      </ThemedText>
+                    </TouchableOpacity>
 
-                {/* No Restrictions Option */}
-                <TouchableOpacity
-                  style={[
-                    styles.dietaryOption,
-                    !includeDietaryRestrictions &&
-                      !showCustomDietary &&
-                      styles.dietaryOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setIncludeDietaryRestrictions(false);
-                    setShowCustomDietary(false);
-                  }}
-                >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={
-                        !includeDietaryRestrictions && !showCustomDietary
-                          ? "#8B7355"
-                          : "#E8E0D0"
-                      }
-                    />
-                    <ThemedText
+                    {/* No Restrictions Option */}
+                    <TouchableOpacity
                       style={[
-                        styles.dietaryOptionTitle,
+                        styles.dietaryOption,
                         !includeDietaryRestrictions &&
                           !showCustomDietary &&
-                          styles.dietaryOptionTitleSelected,
+                          styles.dietaryOptionSelected,
                       ]}
+                      onPress={() => {
+                        setIncludeDietaryRestrictions(false);
+                        setShowCustomDietary(false);
+                      }}
                     >
-                      No dietary restrictions
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color={
+                            !includeDietaryRestrictions && !showCustomDietary
+                              ? "#8B7355"
+                              : "#E8E0D0"
+                          }
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            !includeDietaryRestrictions &&
+                              !showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          No dietary restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        Create the recipe without any dietary restrictions
+                      </ThemedText>
+                    </TouchableOpacity>
+
+                    {/* Custom Restrictions Option */}
+                    <TouchableOpacity
+                      style={[
+                        styles.dietaryOption,
+                        showCustomDietary && styles.dietaryOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setShowCustomDietary(true);
+                        setIncludeDietaryRestrictions(false);
+                      }}
+                    >
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="create"
+                          size={20}
+                          color={showCustomDietary ? "#8B7355" : "#E8E0D0"}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          Custom restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        Specify custom dietary restrictions for this recipe
+                      </ThemedText>
+                    </TouchableOpacity>
+
+                    {/* Custom Restrictions Input */}
+                    {showCustomDietary && (
+                      <View style={styles.customDietaryContainer}>
+                        <TextInput
+                          style={styles.customDietaryInput}
+                          placeholder="e.g., vegan, nut-free, gluten-free, low-sodium"
+                          placeholderTextColor="#A69B8D"
+                          value={customDietaryRestrictions}
+                          onChangeText={setCustomDietaryRestrictions}
+                          multiline
+                          numberOfLines={3}
+                          textAlignVertical="top"
+                          ref={customDietaryRef}
+                          onFocus={() => {
+                            setTimeout(() => {
+                              scrollViewRef.current?.scrollToEnd({
+                                animated: true,
+                              });
+                            }, 100);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={24}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.sectionTitle}>
+                        Dietary Restrictions
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.sectionDescription}>
+                      You haven&apos;t set any dietary restrictions yet. You can
+                      add them in your settings.
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    Create the recipe without any dietary restrictions
+                )
+              ) : (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={24}
+                      color="#8B7355"
+                    />
+                    <ThemedText style={styles.sectionTitle}>
+                      Dietary Restrictions
+                    </ThemedText>
+                  </View>
+                  <View style={styles.dietaryLoadingContainer}>
+                    <ActivityIndicator size="small" color="#8B7355" />
+                    <ThemedText style={styles.dietaryLoadingText}>
+                      Loading dietary preferences...
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancel}
+                >
+                  <ThemedText style={styles.cancelButtonText}>
+                    Cancel
                   </ThemedText>
                 </TouchableOpacity>
-
-                {/* Custom Restrictions Option */}
                 <TouchableOpacity
                   style={[
-                    styles.dietaryOption,
-                    showCustomDietary && styles.dietaryOptionSelected,
+                    styles.forkButton,
+                    forkRecipeMutation.isPending && styles.forkButtonDisabled,
                   ]}
-                  onPress={() => {
-                    setShowCustomDietary(true);
-                    setIncludeDietaryRestrictions(false);
-                  }}
+                  onPress={handleForkRecipe}
+                  disabled={forkRecipeMutation.isPending}
                 >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="create"
-                      size={20}
-                      color={showCustomDietary ? "#8B7355" : "#E8E0D0"}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.dietaryOptionTitle,
-                        showCustomDietary && styles.dietaryOptionTitleSelected,
-                      ]}
-                    >
-                      Custom restrictions
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    Specify custom dietary restrictions for this recipe
+                  {forkRecipeMutation.isPending ? (
+                    <ActivityIndicator size="small" color="#F8F6F1" />
+                  ) : (
+                    <Ionicons name="git-branch" size={20} color="#F8F6F1" />
+                  )}
+                  <ThemedText style={styles.forkButtonText}>
+                    {forkRecipeMutation.isPending
+                      ? "Forking..."
+                      : "Fork Recipe"}
                   </ThemedText>
                 </TouchableOpacity>
-
-                {/* Custom Restrictions Input */}
-                {showCustomDietary && (
-                  <View style={styles.customDietaryContainer}>
-                    <TextInput
-                      style={styles.customDietaryInput}
-                      placeholder="e.g., vegan, nut-free, gluten-free, low-sodium"
-                      placeholderTextColor="#A69B8D"
-                      value={customDietaryRestrictions}
-                      onChangeText={setCustomDietaryRestrictions}
-                      multiline
-                      numberOfLines={3}
-                      textAlignVertical="top"
-                      ref={customDietaryRef}
-                    />
-                  </View>
-                )}
               </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-              >
-                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.forkButton,
-                  forkRecipeMutation.isPending && styles.forkButtonDisabled,
-                ]}
-                onPress={handleForkRecipe}
-                disabled={forkRecipeMutation.isPending}
-              >
-                {forkRecipeMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#F8F6F1" />
-                ) : (
-                  <Ionicons name="git-branch" size={20} color="#F8F6F1" />
-                )}
-                <ThemedText style={styles.forkButtonText}>
-                  {forkRecipeMutation.isPending ? "Forking..." : "Fork Recipe"}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </ThemedView>
     </SafeAreaView>
@@ -582,5 +659,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#8B7355",
     marginTop: 16,
+  },
+  dietaryLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dietaryLoadingText: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 });

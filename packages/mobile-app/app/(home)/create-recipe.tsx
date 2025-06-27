@@ -9,6 +9,8 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -34,14 +36,26 @@ export default function CreateRecipe() {
 
   const recipeInputRef = useRef<TextInput>(null);
   const customDietaryRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  // Auto-focus the recipe input when page loads
+  // Handle keyboard appearance
   useEffect(() => {
-    const timer = setTimeout(() => {
-      recipeInputRef.current?.focus();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        // Scroll to the custom dietary input if it's focused
+        if (showCustomDietary) {
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+    };
+  }, [showCustomDietary]);
 
   const handleCreateRecipe = async () => {
     setInputError("");
@@ -87,220 +101,278 @@ export default function CreateRecipe() {
         </View>
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingView}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 20}
           >
-            {/* Recipe Description Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="restaurant" size={24} color="#8B7355" />
-                <ThemedText style={styles.sectionTitle}>
-                  Recipe Description
-                </ThemedText>
-              </View>
-              <ThemedText style={styles.sectionDescription}>
-                Describe the recipe you&apos;d like to create. Be as detailed as
-                possible to get the best results.
-              </ThemedText>
-              <TextInput
-                style={styles.recipeInput}
-                placeholder="e.g., A spicy chicken curry with coconut milk, fresh herbs, and vegetables. I want it to be moderately spicy and serve 4 people."
-                placeholderTextColor="#A69B8D"
-                value={recipeMessage}
-                onChangeText={(text) => {
-                  setRecipeMessage(text);
-                  if (inputError) setInputError("");
-                }}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                ref={recipeInputRef}
-              />
-              {inputError ? (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={16} color="#D32F2F" />
-                  <ThemedText style={styles.errorText}>{inputError}</ThemedText>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Dietary Restrictions Section */}
-            {user?.dietaryRestrictions && (
+            <ScrollView
+              style={styles.content}
+              contentContainerStyle={[styles.contentContainer]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ref={scrollViewRef}
+            >
+              {/* Recipe Description Section */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons
-                    name="restaurant-outline"
-                    size={24}
-                    color="#8B7355"
-                  />
+                  <Ionicons name="restaurant" size={24} color="#8B7355" />
                   <ThemedText style={styles.sectionTitle}>
-                    Dietary Restrictions
+                    Recipe Description
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.sectionDescription}>
-                  Choose how to handle dietary restrictions for this recipe.
+                  Describe the recipe you&apos;d like to create. Be as detailed
+                  as possible to get the best results.
                 </ThemedText>
-
-                {/* Default Restrictions Option */}
-                <TouchableOpacity
-                  style={[
-                    styles.dietaryOption,
-                    includeDietaryRestrictions &&
-                      !showCustomDietary &&
-                      styles.dietaryOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setIncludeDietaryRestrictions(true);
-                    setShowCustomDietary(false);
+                <TextInput
+                  style={styles.recipeInput}
+                  placeholder="e.g., A spicy chicken curry with coconut milk, fresh herbs, and vegetables. I want it to be moderately spicy and serve 4 people."
+                  placeholderTextColor="#A69B8D"
+                  value={recipeMessage}
+                  onChangeText={(text) => {
+                    setRecipeMessage(text);
+                    if (inputError) setInputError("");
                   }}
-                >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={
-                        includeDietaryRestrictions && !showCustomDietary
-                          ? "#8B7355"
-                          : "#E8E0D0"
-                      }
-                    />
-                    <ThemedText
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  ref={recipeInputRef}
+                />
+                {inputError ? (
+                  <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle" size={16} color="#D32F2F" />
+                    <ThemedText style={styles.errorText}>
+                      {inputError}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Dietary Restrictions Section */}
+              {user ? (
+                user.dietaryRestrictions ? (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={24}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.sectionTitle}>
+                        Dietary Restrictions
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.sectionDescription}>
+                      Choose how to handle dietary restrictions for this recipe.
+                    </ThemedText>
+
+                    {/* Default Restrictions Option */}
+                    <TouchableOpacity
                       style={[
-                        styles.dietaryOptionTitle,
+                        styles.dietaryOption,
                         includeDietaryRestrictions &&
                           !showCustomDietary &&
-                          styles.dietaryOptionTitleSelected,
+                          styles.dietaryOptionSelected,
                       ]}
+                      onPress={() => {
+                        setIncludeDietaryRestrictions(true);
+                        setShowCustomDietary(false);
+                      }}
                     >
-                      Use my default restrictions
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    {user.dietaryRestrictions}
-                  </ThemedText>
-                </TouchableOpacity>
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={
+                            includeDietaryRestrictions && !showCustomDietary
+                              ? "#8B7355"
+                              : "#E8E0D0"
+                          }
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            includeDietaryRestrictions &&
+                              !showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          Use my default restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        {user.dietaryRestrictions}
+                      </ThemedText>
+                    </TouchableOpacity>
 
-                {/* No Restrictions Option */}
-                <TouchableOpacity
-                  style={[
-                    styles.dietaryOption,
-                    !includeDietaryRestrictions &&
-                      !showCustomDietary &&
-                      styles.dietaryOptionSelected,
-                  ]}
-                  onPress={() => {
-                    setIncludeDietaryRestrictions(false);
-                    setShowCustomDietary(false);
-                  }}
-                >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={
-                        !includeDietaryRestrictions && !showCustomDietary
-                          ? "#8B7355"
-                          : "#E8E0D0"
-                      }
-                    />
-                    <ThemedText
+                    {/* No Restrictions Option */}
+                    <TouchableOpacity
                       style={[
-                        styles.dietaryOptionTitle,
+                        styles.dietaryOption,
                         !includeDietaryRestrictions &&
                           !showCustomDietary &&
-                          styles.dietaryOptionTitleSelected,
+                          styles.dietaryOptionSelected,
                       ]}
+                      onPress={() => {
+                        setIncludeDietaryRestrictions(false);
+                        setShowCustomDietary(false);
+                      }}
                     >
-                      No dietary restrictions
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="close-circle"
+                          size={20}
+                          color={
+                            !includeDietaryRestrictions && !showCustomDietary
+                              ? "#8B7355"
+                              : "#E8E0D0"
+                          }
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            !includeDietaryRestrictions &&
+                              !showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          No dietary restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        Create the recipe without any dietary restrictions
+                      </ThemedText>
+                    </TouchableOpacity>
+
+                    {/* Custom Restrictions Option */}
+                    <TouchableOpacity
+                      style={[
+                        styles.dietaryOption,
+                        showCustomDietary && styles.dietaryOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setShowCustomDietary(true);
+                        setIncludeDietaryRestrictions(false);
+                      }}
+                    >
+                      <View style={styles.dietaryOptionHeader}>
+                        <Ionicons
+                          name="create"
+                          size={20}
+                          color={showCustomDietary ? "#8B7355" : "#E8E0D0"}
+                        />
+                        <ThemedText
+                          style={[
+                            styles.dietaryOptionTitle,
+                            showCustomDietary &&
+                              styles.dietaryOptionTitleSelected,
+                          ]}
+                        >
+                          Custom restrictions
+                        </ThemedText>
+                      </View>
+                      <ThemedText style={styles.dietaryOptionDescription}>
+                        Specify custom dietary restrictions for this recipe
+                      </ThemedText>
+                    </TouchableOpacity>
+
+                    {/* Custom Restrictions Input */}
+                    {showCustomDietary && (
+                      <View style={styles.customDietaryContainer}>
+                        <TextInput
+                          style={styles.customDietaryInput}
+                          placeholder="e.g., vegan, nut-free, gluten-free, low-sodium"
+                          placeholderTextColor="#A69B8D"
+                          value={customDietaryRestrictions}
+                          onChangeText={setCustomDietaryRestrictions}
+                          multiline
+                          numberOfLines={3}
+                          textAlignVertical="top"
+                          ref={customDietaryRef}
+                          onFocus={() => {
+                            setTimeout(() => {
+                              scrollViewRef.current?.scrollToEnd({
+                                animated: true,
+                              });
+                            }, 100);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={24}
+                        color="#8B7355"
+                      />
+                      <ThemedText style={styles.sectionTitle}>
+                        Dietary Restrictions
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.sectionDescription}>
+                      You haven&apos;t set any dietary restrictions yet. You can
+                      add them in your settings.
                     </ThemedText>
                   </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    Create the recipe without any dietary restrictions
+                )
+              ) : (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons
+                      name="restaurant-outline"
+                      size={24}
+                      color="#8B7355"
+                    />
+                    <ThemedText style={styles.sectionTitle}>
+                      Dietary Restrictions
+                    </ThemedText>
+                  </View>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#8B7355" />
+                    <ThemedText style={styles.loadingText}>
+                      Loading dietary preferences...
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={handleCancel}
+                >
+                  <ThemedText style={styles.cancelButtonText}>
+                    Cancel
                   </ThemedText>
                 </TouchableOpacity>
-
-                {/* Custom Restrictions Option */}
                 <TouchableOpacity
                   style={[
-                    styles.dietaryOption,
-                    showCustomDietary && styles.dietaryOptionSelected,
+                    styles.createButton,
+                    createRecipeMutation.isPending &&
+                      styles.createButtonDisabled,
                   ]}
-                  onPress={() => {
-                    setShowCustomDietary(true);
-                    setIncludeDietaryRestrictions(false);
-                  }}
+                  onPress={handleCreateRecipe}
+                  disabled={createRecipeMutation.isPending}
                 >
-                  <View style={styles.dietaryOptionHeader}>
-                    <Ionicons
-                      name="create"
-                      size={20}
-                      color={showCustomDietary ? "#8B7355" : "#E8E0D0"}
-                    />
-                    <ThemedText
-                      style={[
-                        styles.dietaryOptionTitle,
-                        showCustomDietary && styles.dietaryOptionTitleSelected,
-                      ]}
-                    >
-                      Custom restrictions
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.dietaryOptionDescription}>
-                    Specify custom dietary restrictions for this recipe
+                  {createRecipeMutation.isPending ? (
+                    <ActivityIndicator size="small" color="#F8F6F1" />
+                  ) : (
+                    <Ionicons name="add" size={20} color="#F8F6F1" />
+                  )}
+                  <ThemedText style={styles.createButtonText}>
+                    {createRecipeMutation.isPending
+                      ? "Creating..."
+                      : "Create Recipe"}
                   </ThemedText>
                 </TouchableOpacity>
-
-                {/* Custom Restrictions Input */}
-                {showCustomDietary && (
-                  <View style={styles.customDietaryContainer}>
-                    <TextInput
-                      style={styles.customDietaryInput}
-                      placeholder="e.g., vegan, nut-free, gluten-free, low-sodium"
-                      placeholderTextColor="#A69B8D"
-                      value={customDietaryRestrictions}
-                      onChangeText={setCustomDietaryRestrictions}
-                      multiline
-                      numberOfLines={3}
-                      textAlignVertical="top"
-                      ref={customDietaryRef}
-                    />
-                  </View>
-                )}
               </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-              >
-                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.createButton,
-                  createRecipeMutation.isPending && styles.createButtonDisabled,
-                ]}
-                onPress={handleCreateRecipe}
-                disabled={createRecipeMutation.isPending}
-              >
-                {createRecipeMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#F8F6F1" />
-                ) : (
-                  <Ionicons name="add" size={20} color="#F8F6F1" />
-                )}
-                <ThemedText style={styles.createButtonText}>
-                  {createRecipeMutation.isPending
-                    ? "Creating..."
-                    : "Create Recipe"}
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </ThemedView>
     </SafeAreaView>
@@ -469,5 +541,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 });
