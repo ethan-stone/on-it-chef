@@ -67,8 +67,6 @@ app.use("*", async (c, next) => {
     throw result.error;
   }
 
-  console.log("Authorization", c.req.header("Authorization"));
-
   const parsedEnv = result.data;
 
   try {
