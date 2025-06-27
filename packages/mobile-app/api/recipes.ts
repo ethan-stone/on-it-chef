@@ -4,7 +4,6 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
-  useQuery,
 } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 import { useEffect } from "react";
@@ -212,81 +211,6 @@ export function useGenerateRecipeVersion() {
   return mutation;
 }
 
-export type RecipeVersion = NonNullable<
-  NonNullable<
-    NonNullable<ReturnType<typeof useListRecipeVersions>>["data"]
-  >["pages"][number]
->["versions"][number];
-
-export function useListRecipeVersions(recipeId: string) {
-  const { replace } = useRouter();
-
-  const { isLoaded, userId, getToken } = useAuth();
-
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      replace("/");
-    }
-  }, [isLoaded, userId, replace]);
-
-  const query = useInfiniteQuery({
-    queryKey: ["recipe-versions", recipeId],
-    queryFn: async ({ pageParam = 1 }) => {
-      const startTime = Date.now();
-      console.log(
-        `🔄 [API] Starting recipe versions fetch (recipe: ${recipeId}, page: ${pageParam})...`
-      );
-
-      const token = await getToken();
-
-      if (!token) {
-        throw new Error("No token");
-      }
-
-      const response = await client.api.v1["recipes.listRecipeVersions"].$get(
-        {
-          query: {
-            recipeId,
-            page: pageParam.toString(),
-            limit: "10", // Smaller page size for versions
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status !== 200) {
-        throw new Error("Failed to list recipe versions");
-      }
-
-      const versions = await response.json();
-
-      const endTime = Date.now();
-      console.log(
-        `✅ [API] Recipe versions fetch (recipe: ${recipeId}, page: ${pageParam}) completed in ${
-          endTime - startTime
-        }ms`
-      );
-
-      return versions;
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      // If there are more versions, return the next page number
-      if (lastPage.hasMore) {
-        return allPages.length + 1;
-      }
-      return undefined; // No more pages
-    },
-    initialPageParam: 1,
-    enabled: isLoaded && !!userId,
-  });
-
-  return query;
-}
-
 export function useDeleteRecipe() {
   const { replace } = useRouter();
   const queryClient = useQueryClient();
@@ -341,65 +265,6 @@ export function useDeleteRecipe() {
   });
 
   return mutation;
-}
-
-export function useListRecipePrompts(recipeId: string) {
-  const { replace } = useRouter();
-
-  const { isLoaded, userId, getToken } = useAuth();
-
-  useEffect(() => {
-    if (isLoaded && !userId) {
-      replace("/");
-    }
-  }, [isLoaded, userId, replace]);
-
-  const query = useQuery({
-    queryKey: ["recipe-prompts", recipeId],
-    queryFn: async () => {
-      const startTime = Date.now();
-      console.log(
-        `🔄 [API] Starting recipe prompts fetch (recipe: ${recipeId})...`
-      );
-
-      const token = await getToken();
-
-      if (!token) {
-        throw new Error("No token");
-      }
-
-      const response = await client.api.v1["recipes.listRecipePrompts"].$get(
-        {
-          query: {
-            recipeId,
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status !== 200) {
-        throw new Error("Failed to list recipe prompts");
-      }
-
-      const prompts = await response.json();
-
-      const endTime = Date.now();
-      console.log(
-        `✅ [API] Recipe prompts fetch (recipe: ${recipeId}) completed in ${
-          endTime - startTime
-        }ms`
-      );
-
-      return prompts;
-    },
-    enabled: isLoaded && !!userId && !!recipeId,
-  });
-
-  return query;
 }
 
 export function useForkRecipe() {
@@ -463,6 +328,12 @@ export function useForkRecipe() {
 
   return mutation;
 }
+
+export type RecipeVersion = NonNullable<
+  NonNullable<
+    NonNullable<ReturnType<typeof useGetRecipeDetails>>["data"]
+  >["pages"][number]
+>["versions"]["versions"][number];
 
 export function useGetRecipeDetails(recipeId: string) {
   const { replace } = useRouter();
