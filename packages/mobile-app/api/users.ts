@@ -18,6 +18,9 @@ export function useGetLoggedInUser() {
   const query = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
+      const startTime = Date.now();
+      console.log("🔄 [API] Starting user fetch...");
+
       const token = await getToken();
 
       if (!token) {
@@ -38,6 +41,9 @@ export function useGetLoggedInUser() {
       }
 
       const user = await response.json();
+
+      const endTime = Date.now();
+      console.log(`✅ [API] User fetch completed in ${endTime - startTime}ms`);
 
       return user;
     },
@@ -65,6 +71,9 @@ export function useUpdateUserSettings() {
 
   const mutation = useMutation({
     mutationFn: async (data: { dietaryRestrictions?: string }) => {
+      const startTime = Date.now();
+      console.log("🔄 [API] Starting user settings update...");
+
       const token = await getToken();
 
       if (!token) {
@@ -87,6 +96,11 @@ export function useUpdateUserSettings() {
       }
 
       const user = await response.json();
+
+      const endTime = Date.now();
+      console.log(
+        `✅ [API] User settings update completed in ${endTime - startTime}ms`
+      );
 
       return user;
     },

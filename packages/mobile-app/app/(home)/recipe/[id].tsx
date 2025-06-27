@@ -19,8 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   useGenerateRecipeVersion,
-  useListRecipeVersions,
-  useListRecipePrompts,
+  useGetRecipeDetails,
   RecipeVersion,
 } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
@@ -46,19 +45,23 @@ export default function RecipeDetail() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useListRecipeVersions(id as string);
-
-  const { data: promptsData } = useListRecipePrompts(id as string);
+  } = useGetRecipeDetails(id as string);
 
   const generateVersionMutation = useGenerateRecipeVersion();
   const { data: user } = useGetLoggedInUser();
 
   // Flatten all pages of versions into a single array
   const allVersions = useMemo(
-    () => versionsData?.pages.flatMap((page) => page.versions || []) || [],
+    () =>
+      versionsData?.pages.flatMap((page) => page.versions.versions || []) || [],
     [versionsData?.pages]
   );
-  const allPrompts = promptsData?.prompts || [];
+
+  // Get prompts from the first page (they don't change with pagination)
+  const allPrompts = useMemo(
+    () => versionsData?.pages[0]?.prompts || [],
+    [versionsData?.pages]
+  );
 
   // Set the most recent version as default when data loads
   useEffect(() => {
@@ -764,19 +767,6 @@ const styles = StyleSheet.create({
     color: "#5D4E37",
     lineHeight: 22,
   },
-  promptCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E8E0D0",
-  },
-  promptText: {
-    fontSize: 16,
-    color: "#5D4E37",
-    lineHeight: 22,
-    fontStyle: "italic",
-  },
   generateButtonContainer: {
     position: "absolute",
     bottom: 0,
@@ -1032,5 +1022,18 @@ const styles = StyleSheet.create({
     color: "#8B7355",
     fontSize: 14,
     marginLeft: 8,
+  },
+  promptCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E8E0D0",
+  },
+  promptText: {
+    fontSize: 16,
+    color: "#5D4E37",
+    lineHeight: 22,
+    fontStyle: "italic",
   },
 });

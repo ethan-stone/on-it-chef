@@ -16,6 +16,8 @@ export const apiFn = new sst.aws.Function("ApiFn", {
   },
 });
 
+const routerLogsBucket = new sst.aws.Bucket("RouterLogsBucket");
+
 export const router = new sst.aws.Router("ApiRouter", {
   routes: {
     "/*": apiFn.url,
