@@ -409,3 +409,66 @@ export function useGetRecipeDetails(recipeId: string) {
 
   return query;
 }
+
+export function useSearchRecipes(query: string) {
+  const { replace } = useRouter();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
+
+  const searchQuery = useInfiniteQuery({
+    queryKey: ["search-recipes", query],
+    queryFn: async ({ pageParam = 1 }) => {
+      const startTime = Date.now();
+      console.log(`🔄 [API] Starting recipe search for "${query}"...`);
+
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.searchRecipes"].$get(
+        {
+          query: {
+            query: query,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to search recipes");
+      }
+
+      const recipes = await response.json();
+
+      const endTime = Date.now();
+      console.log(
+        `✅ [API] Recipe search for "${query}" completed in ${
+          endTime - startTime
+        }ms`
+      );
+
+      return recipes;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      // For now, search returns all results in one page
+      // If we implement pagination later, we can update this
+      return undefined;
+    },
+    initialPageParam: 1,
+    enabled: isLoaded && !!userId && query.trim().length > 0,
+  });
+
+  return searchQuery;
+}

@@ -25,7 +25,7 @@ const MongoRecipeVersion = RecipeVersion.omit({
   _id: z.string(),
 });
 
-type MongoRecipeVersion = z.infer<typeof MongoRecipeVersion>;
+export type MongoRecipeVersion = z.infer<typeof MongoRecipeVersion>;
 
 const RecipePrompt = z.object({
   id: z.string(),
@@ -44,7 +44,7 @@ const MongoRecipePrompt = RecipePrompt.omit({
   _id: z.string(),
 });
 
-type MongoRecipePrompt = z.infer<typeof MongoRecipePrompt>;
+export type MongoRecipePrompt = z.infer<typeof MongoRecipePrompt>;
 
 const Recipe = z.object({
   id: z.string(),
@@ -70,7 +70,7 @@ const MongoRecipe = Recipe.omit({
   includeDietaryRestrictions: z.boolean().default(true),
 });
 
-type MongoRecipe = z.infer<typeof MongoRecipe>;
+export type MongoRecipe = z.infer<typeof MongoRecipe>;
 
 const toMongo = {
   recipe: (recipe: Recipe): MongoRecipe => {
@@ -483,5 +483,53 @@ export class RecipeService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async searchRecipes(userId: string, query: string): Promise<Recipe[]> {
+    const startTime = Date.now();
+    const mongoRecipes = this.recipesColl.aggregate([
+      {
+        $search: {
+          index: "recipesTextSearchIndex",
+          compound: {
+            must: [
+              {
+                text: {
+                  query: query,
+                  path: [
+                    "userGivenName",
+                    "recentVersions.generatedName",
+                    "recentVersions.ingredients",
+                  ],
+                },
+              },
+            ],
+            filter: [
+              {
+                equals: {
+                  path: "userId",
+                  value: userId,
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        $limit: 10,
+      },
+    ]);
+
+    const mongoRecipesArray = (await mongoRecipes.toArray()) as MongoRecipe[];
+
+    console.log(mongoRecipesArray);
+
+    const duration = Date.now() - startTime;
+
+    console.log(`[DB] searchRecipes: ${duration}ms`);
+
+    return mongoRecipesArray.map((mongoRecipe) =>
+      fromMongo.recipe(mongoRecipe)
+    );
   }
 }

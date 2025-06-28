@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   Alert,
   SafeAreaView,
   FlatList,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -15,6 +16,7 @@ import {
   useDeleteRecipe,
   Recipe,
   fetchRecipeDetails,
+  useSearchRecipes,
 } from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
@@ -27,6 +29,20 @@ export default function Recipes() {
   const { getToken } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 200); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const {
     data,
     isLoading,
@@ -35,10 +51,24 @@ export default function Recipes() {
     hasNextPage,
     isFetchingNextPage,
   } = useListRecipes();
+
+  const {
+    data: searchData,
+    isLoading: isSearchLoading,
+    error: searchError,
+  } = useSearchRecipes(debouncedSearchQuery);
+
   const deleteRecipeMutation = useDeleteRecipe();
 
+  // Determine which data to use based on search state
+  const isSearching = debouncedSearchQuery.trim().length > 0;
+  const currentData = isSearching ? searchData : data;
+  const currentIsLoading = isSearching ? isSearchLoading : isLoading;
+  const currentError = isSearching ? searchError : error;
+
   // Flatten all pages of recipes into a single array
-  const allRecipes = data?.pages.flatMap((page) => page.recipes || []) || [];
+  const allRecipes =
+    currentData?.pages.flatMap((page) => page.recipes || []) || [];
 
   // Helper function to format time in minutes to readable format
   const formatTime = (minutes: number) => {
@@ -104,6 +134,26 @@ export default function Recipes() {
               };
             });
 
+            // Also update search results if we're searching
+            if (isSearching) {
+              queryClient.setQueryData(
+                ["search-recipes", debouncedSearchQuery],
+                (oldData: any) => {
+                  if (!oldData) return oldData;
+
+                  return {
+                    ...oldData,
+                    pages: oldData.pages.map((page: any) => ({
+                      ...page,
+                      recipes: page.recipes.filter(
+                        (r: any) => r.id !== recipe.id
+                      ),
+                    })),
+                  };
+                }
+              );
+            }
+
             // Show immediate success feedback
             showToast("Recipe deleted successfully!", "success");
 
@@ -113,6 +163,11 @@ export default function Recipes() {
               console.error(error);
               // Revert optimistic update on error
               queryClient.invalidateQueries({ queryKey: ["recipes"] });
+              if (isSearching) {
+                queryClient.invalidateQueries({
+                  queryKey: ["search-recipes", debouncedSearchQuery],
+                });
+              }
               showToast("Failed to delete recipe. Please try again.", "error");
             }
           },
@@ -121,9 +176,9 @@ export default function Recipes() {
     );
   };
 
-  // Handle loading more recipes
+  // Handle loading more recipes (only for non-search results)
   const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (!isSearching && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   };
@@ -202,9 +257,9 @@ export default function Recipes() {
     </TouchableOpacity>
   );
 
-  // Render loading indicator for next page
+  // Render loading indicator for next page (only for non-search results)
   const renderFooter = () => {
-    if (!isFetchingNextPage) return null;
+    if (isSearching || !isFetchingNextPage) return null;
 
     return (
       <View style={styles.loadingMoreContainer}>
@@ -220,9 +275,13 @@ export default function Recipes() {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="restaurant-outline" size={64} color="#8B7355" />
-      <ThemedText style={styles.emptyTitle}>No recipes yet</ThemedText>
+      <ThemedText style={styles.emptyTitle}>
+        {isSearching ? "No recipes found" : "No recipes yet"}
+      </ThemedText>
       <ThemedText style={styles.emptyText}>
-        Start by adding your first recipe!
+        {isSearching
+          ? `No recipes match "${debouncedSearchQuery}"`
+          : "Start by adding your first recipe!"}
       </ThemedText>
     </View>
   );
@@ -242,25 +301,41 @@ export default function Recipes() {
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#8B7355" />
-            <ThemedText style={styles.searchPlaceholder}>
-              Search recipes...
-            </ThemedText>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search recipes..."
+              placeholderTextColor="#8B7355"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={20} color="#8B7355" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         {/* Loading State */}
-        {isLoading ? (
+        {currentIsLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#8B7355" />
             <ThemedText style={styles.loadingText}>
-              Loading recipes...
+              {isSearching ? "Searching recipes..." : "Loading recipes..."}
             </ThemedText>
           </View>
-        ) : error ? (
+        ) : currentError ? (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color="#8B7355" />
             <ThemedText style={styles.errorText}>
-              Failed to load recipes. Please try again.
+              {isSearching
+                ? "Failed to search recipes. Please try again."
+                : "Failed to load recipes. Please try again."}
             </ThemedText>
           </View>
         ) : (
@@ -336,10 +411,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E8E0D0",
   },
-  searchPlaceholder: {
+  searchInput: {
+    flex: 1,
     marginLeft: 8,
-    color: "#8B7355", // Medium brown text
+    color: "#5D4E37", // Dark brown text for input
     fontSize: 16,
+  },
+  clearButton: {
+    padding: 4,
+    borderRadius: 12,
   },
   loadingContainer: {
     flex: 1,
