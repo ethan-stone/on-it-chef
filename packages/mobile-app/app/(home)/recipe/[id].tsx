@@ -106,7 +106,7 @@ export default function RecipeDetail() {
     });
   };
 
-  const generateMarkdown = (version: any) => {
+  const generateMarkdown = (version: RecipeVersion) => {
     if (!version) return "";
 
     const markdown = `# ${version.generatedName}
@@ -120,7 +120,9 @@ ${version.description}
 - **Servings:** ${version.servings}
 
 ## Ingredients
-${version.ingredients.map((ingredient: string) => `- ${ingredient}`).join("\n")}
+${version.ingredients
+  .map((ingredient) => `- ${ingredient.description}`)
+  .join("\n")}
 
 ## Instructions
 ${version.instructions
