@@ -148,6 +148,7 @@ export default function Recipes() {
 
   // Helper function to get recipe name
   const getRecipeName = (recipe: Recipe) => {
+    console.log("recipe", JSON.stringify(recipe, null, 2));
     return recipe.userGivenName || recipe.generatedName;
   };
 
@@ -296,15 +297,6 @@ export default function Recipes() {
           <ThemedText style={styles.recipeTitle}>
             {getRecipeName(recipe)}
           </ThemedText>
-          {/* Show shared info for shared recipes */}
-          {activeTab === "shared" && "sharedBy" in recipe && (
-            <View style={styles.sharedInfo}>
-              <Ionicons name="share-outline" size={14} color="#8B7355" />
-              <ThemedText style={styles.sharedText}>
-                Shared by {recipe.sharedBy}
-              </ThemedText>
-            </View>
-          )}
         </View>
 
         <ThemedText style={styles.recipeDescription}>
@@ -632,9 +624,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   recipeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: 8,
   },
   recipeTitle: {
@@ -647,6 +636,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
+    marginBottom: 8,
   },
   sharedText: {
     fontSize: 12,

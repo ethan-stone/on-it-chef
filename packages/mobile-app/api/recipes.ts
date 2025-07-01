@@ -543,3 +543,59 @@ export function useListSharedRecipes() {
 
   return query;
 }
+
+export function useShareRecipe() {
+  const { replace } = useRouter();
+  const queryClient = useQueryClient();
+  const { isLoaded, userId, getToken } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
+
+  const mutation = useMutation({
+    mutationFn: async (data: { recipeId: string; shareWithEmail: string }) => {
+      const startTime = Date.now();
+      console.log(
+        `🔄 [API] Starting recipe share (recipe: ${data.recipeId})...`
+      );
+
+      const token = await getToken();
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.shareRecipe"].$post(
+        {
+          json: data,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to share recipe");
+      }
+
+      const result = await response.json();
+      const endTime = Date.now();
+      console.log(
+        `✅ [API] Recipe share (recipe: ${data.recipeId}) completed in ${
+          endTime - startTime
+        }ms`
+      );
+      return result;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch shared recipes list
+      queryClient.invalidateQueries({ queryKey: ["shared-recipes"] });
+    },
+  });
+
+  return mutation;
+}

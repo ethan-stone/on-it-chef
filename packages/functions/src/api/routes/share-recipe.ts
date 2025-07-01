@@ -14,7 +14,7 @@ const route = createRoute({
         "application/json": {
           schema: z.object({
             recipeId: z.string(),
-            shareWithEmail: z.string(),
+            shareWithEmail: z.string().toLowerCase().trim(),
           }),
         },
       },

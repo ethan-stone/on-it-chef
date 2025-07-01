@@ -21,24 +21,25 @@ import {
   useGenerateRecipeVersion,
   useGetRecipeDetails,
   RecipeVersion,
+  useShareRecipe,
 } from "@/api/recipes";
-import { useGetLoggedInUser } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
   const [selectedVersion, setSelectedVersion] = useState<RecipeVersion | null>(
     null
   );
   const [modalVisible, setModalVisible] = useState(false);
-  const [newVersionMessage, setNewVersionMessage] = useState("");
-  const [inputError, setInputError] = useState("");
   const scrollViewRef = useRef<ScrollView>(null);
   const newVersionInputRef = useRef<TextInput>(null);
+  const shareRecipeMutation = useShareRecipe();
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareError, setShareError] = useState("");
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
 
   const {
     data: versionsData,
@@ -50,7 +51,6 @@ export default function RecipeDetail() {
   } = useGetRecipeDetails(id as string);
 
   const generateVersionMutation = useGenerateRecipeVersion();
-  const { data: user } = useGetLoggedInUser();
 
   // Flatten all pages of versions into a single array
   const allVersions = useMemo(
@@ -157,36 +157,30 @@ ${version.instructions
     router.push(`/fork-recipe?id=${id}&versionId=${selectedVersion.id}`);
   };
 
-  const handleGenerateVersion = async () => {
-    setInputError("");
-    if (!newVersionMessage.trim()) {
-      setInputError("Please describe the changes you want to make.");
-      return;
-    }
-
-    try {
-      await generateVersionMutation.mutateAsync({
-        recipeId: id as string,
-        message: newVersionMessage.trim(),
-      });
-      setModalVisible(false);
-      setNewVersionMessage("");
-
-      // Invalidate the recipe details query to refetch with the new version
-      await queryClient.invalidateQueries({
-        queryKey: ["recipe-details", id],
-      });
-
-      showToast("New recipe version generated successfully!", "success");
-    } catch (error) {
-      console.error(error);
-      showToast("Failed to generate new version. Please try again.", "error");
-    }
-  };
-
   const handleLoadMoreVersions = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
+    }
+  };
+
+  const handleShareRecipe = async () => {
+    setShareError("");
+    if (!shareEmail.trim()) {
+      setShareError("Please enter an email address.");
+      return;
+    }
+    try {
+      await shareRecipeMutation.mutateAsync({
+        recipeId: id as string,
+        shareWithEmail: shareEmail.trim(),
+      });
+      setShareModalVisible(false);
+      setShareEmail("");
+      showToast("Recipe shared successfully!", "success");
+    } catch (error) {
+      console.error(error);
+      setShareError("Failed to share recipe. Please try again.");
+      showToast("Failed to share recipe. Please try again.", "error");
     }
   };
 
@@ -258,10 +252,81 @@ ${version.instructions
           <ThemedText style={styles.headerTitle}>
             {selectedVersion?.generatedName || "Recipe"}
           </ThemedText>
-          <TouchableOpacity style={styles.historyButton}>
-            <Ionicons name="time-outline" size={24} color="#8B7355" />
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => setActionMenuVisible(true)}
+          >
+            <Ionicons name="ellipsis-horizontal" size={28} color="#8B7355" />
           </TouchableOpacity>
         </View>
+
+        {/* Action Menu Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={actionMenuVisible}
+          onRequestClose={() => setActionMenuVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setActionMenuVisible(false)}>
+            <View style={styles.actionMenuOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.actionMenuContainer}>
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={() => {
+                      setActionMenuVisible(false);
+                      handleCopyAsMarkdown();
+                    }}
+                  >
+                    <Ionicons
+                      name="copy-outline"
+                      size={20}
+                      color="#8B7355"
+                      style={{ marginRight: 12 }}
+                    />
+                    <ThemedText style={styles.actionMenuText}>
+                      Copy as Markdown
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={() => {
+                      setActionMenuVisible(false);
+                      handleForkRecipe();
+                    }}
+                  >
+                    <Ionicons
+                      name="git-branch-outline"
+                      size={20}
+                      color="#8B7355"
+                      style={{ marginRight: 12 }}
+                    />
+                    <ThemedText style={styles.actionMenuText}>
+                      Fork Recipe
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={() => {
+                      setActionMenuVisible(false);
+                      setShareModalVisible(true);
+                    }}
+                  >
+                    <Ionicons
+                      name="share-social-outline"
+                      size={20}
+                      color="#8B7355"
+                      style={{ marginRight: 12 }}
+                    />
+                    <ThemedText style={styles.actionMenuText}>
+                      Share Recipe
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
@@ -321,22 +386,6 @@ ${version.instructions
                     {selectedVersion.generatedName}
                   </ThemedText>
                   <View style={styles.recipeHeaderActions}>
-                    <TouchableOpacity
-                      style={styles.copyButton}
-                      onPress={handleCopyAsMarkdown}
-                    >
-                      <Ionicons name="copy-outline" size={20} color="#8B7355" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.forkButton}
-                      onPress={handleForkRecipe}
-                    >
-                      <Ionicons
-                        name="git-branch-outline"
-                        size={20}
-                        color="#8B7355"
-                      />
-                    </TouchableOpacity>
                     <View style={styles.versionBadge}>
                       <ThemedText style={styles.versionText}>
                         v{selectedVersion.version}
@@ -475,14 +524,15 @@ ${version.instructions
           </TouchableOpacity>
         </View>
 
-        {/* Generate New Version Modal */}
+        {/* Share Recipe Modal */}
         <Modal
           animationType="slide"
           transparent={true}
-          visible={modalVisible}
+          visible={shareModalVisible}
           onRequestClose={() => {
-            setModalVisible(false);
-            setNewVersionMessage("");
+            setShareModalVisible(false);
+            setShareEmail("");
+            setShareError("");
           }}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -491,65 +541,54 @@ ${version.instructions
                 <View style={styles.modalContainer}>
                   {/* Modal Header */}
                   <View style={styles.modalHeader}>
-                    <Ionicons name="create-outline" size={28} color="#8B7355" />
+                    <Ionicons
+                      name="share-social-outline"
+                      size={28}
+                      color="#8B7355"
+                    />
                     <ThemedText style={styles.modalTitle}>
-                      Generate New Version
+                      Share Recipe
                     </ThemedText>
                     <TouchableOpacity
-                      onPress={() => setModalVisible(false)}
+                      onPress={() => {
+                        setShareModalVisible(false);
+                        setShareEmail("");
+                        setShareError("");
+                      }}
                       style={styles.closeButton}
                     >
                       <Ionicons name="close" size={24} color="#8B7355" />
                     </TouchableOpacity>
                   </View>
-
                   {/* Modal Content */}
                   <View style={styles.modalContent}>
                     <ThemedText style={styles.modalSubtitle}>
-                      Describe the changes you&apos;d like to make to this
-                      recipe
+                      Enter the email address of the user you want to share this
+                      recipe with.
                     </ThemedText>
-
                     <TextInput
                       style={styles.modalInput}
-                      placeholder="e.g., Make it spicier, add more vegetables, reduce cooking time..."
+                      placeholder="Enter email address"
                       placeholderTextColor="#A69B8D"
-                      value={newVersionMessage}
-                      onChangeText={setNewVersionMessage}
-                      multiline
-                      numberOfLines={4}
-                      textAlignVertical="top"
-                      ref={newVersionInputRef}
+                      value={shareEmail}
+                      onChangeText={setShareEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
                     />
-
-                    {user?.dietaryRestrictions && (
-                      <View style={styles.dietaryNote}>
-                        <Ionicons
-                          name="information-circle-outline"
-                          size={16}
-                          color="#8B7355"
-                        />
-                        <ThemedText style={styles.dietaryNoteText}>
-                          Your dietary restrictions ({user.dietaryRestrictions})
-                          will be automatically applied
-                        </ThemedText>
-                      </View>
-                    )}
-
-                    {inputError ? (
+                    {shareError ? (
                       <ThemedText style={styles.errorText}>
-                        {inputError}
+                        {shareError}
                       </ThemedText>
                     ) : null}
                   </View>
-
                   {/* Modal Actions */}
                   <View style={styles.modalActions}>
                     <TouchableOpacity
                       style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
-                        setModalVisible(false);
-                        setNewVersionMessage("");
+                        setShareModalVisible(false);
+                        setShareEmail("");
+                        setShareError("");
                       }}
                     >
                       <ThemedText style={styles.cancelButtonText}>
@@ -558,16 +597,20 @@ ${version.instructions
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.modalButton, styles.createButton]}
-                      onPress={handleGenerateVersion}
-                      disabled={generateVersionMutation.isPending}
+                      onPress={handleShareRecipe}
+                      disabled={shareRecipeMutation.isPending}
                     >
-                      {generateVersionMutation.isPending ? (
+                      {shareRecipeMutation.isPending ? (
                         <ActivityIndicator size="small" color="#F8F6F1" />
                       ) : (
                         <View style={styles.buttonContent}>
-                          <Ionicons name="create" size={20} color="#F8F6F1" />
+                          <Ionicons
+                            name="share-social"
+                            size={20}
+                            color="#F8F6F1"
+                          />
                           <ThemedText style={styles.createButtonText}>
-                            Generate
+                            Share
                           </ThemedText>
                         </View>
                       )}
@@ -932,11 +975,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   modalInput: {
-    height: 120,
+    height: 48,
     borderWidth: 2,
     borderColor: "#E8E0D0",
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     fontSize: 16,
     color: "#5D4E37",
     backgroundColor: "#F8F6F1",
@@ -1033,5 +1077,28 @@ const styles = StyleSheet.create({
     color: "#5D4E37",
     lineHeight: 22,
     fontStyle: "italic",
+  },
+  actionMenuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  actionMenuContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    maxWidth: 400,
+  },
+  actionMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+  },
+  actionMenuText: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

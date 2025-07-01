@@ -4,6 +4,7 @@ import {
   MongoRecipe,
   MongoRecipePrompt,
   MongoRecipeVersion,
+  MongoSharedRecipe,
 } from "../services/recipes";
 import { MongoUser } from "../services/users";
 
@@ -16,6 +17,7 @@ async function createIndexes() {
   const recipes = db.collection<MongoRecipe>("recipes");
   const recipeVersions = db.collection<MongoRecipeVersion>("recipeVersions");
   const recipePrompts = db.collection<MongoRecipePrompt>("recipePrompts");
+  const sharedRecipes = db.collection<MongoSharedRecipe>("sharedRecipes");
   const users = db.collection<MongoUser>("users");
 
   await users.createIndex(
@@ -65,6 +67,23 @@ async function createIndexes() {
         },
       },
     },
+  });
+
+  await sharedRecipes.createIndex({
+    recipeId: 1,
+  });
+
+  await sharedRecipes.createIndex({
+    sharedBy: 1,
+  });
+
+  await sharedRecipes.createIndex({
+    sharedWith: 1,
+  });
+
+  await sharedRecipes.createIndex({
+    sharedWith: 1,
+    recipeId: 1,
   });
 
   await client.close();
