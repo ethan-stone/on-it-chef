@@ -284,7 +284,7 @@ ${version.instructions
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#8B7355" />
+            <Ionicons name="arrow-back" size={22} color="#8B7355" />
           </TouchableOpacity>
           <ThemedText style={styles.headerTitle}>
             {selectedVersion?.generatedName || "Recipe"}
@@ -293,7 +293,7 @@ ${version.instructions
             style={styles.historyButton}
             onPress={() => setActionMenuVisible(true)}
           >
-            <Ionicons name="ellipsis-horizontal" size={28} color="#8B7355" />
+            <Ionicons name="ellipsis-horizontal" size={24} color="#8B7355" />
           </TouchableOpacity>
         </View>
         {/* Action Menu Modal */}
@@ -307,60 +307,114 @@ ${version.instructions
             <View style={styles.actionMenuOverlay}>
               <TouchableWithoutFeedback>
                 <View style={styles.actionMenuContainer}>
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
-                    onPress={() => {
-                      setActionMenuVisible(false);
-                      handleCopyAsMarkdown();
-                    }}
-                  >
-                    <Ionicons
-                      name="copy-outline"
-                      size={20}
-                      color="#8B7355"
-                      style={{ marginRight: 12 }}
-                    />
-                    <ThemedText style={styles.actionMenuText}>
-                      Copy as Markdown
+                  {/* Modal Header */}
+                  <View style={styles.actionMenuHeader}>
+                    <ThemedText style={styles.actionMenuTitle}>
+                      Recipe Actions
                     </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
-                    onPress={() => {
-                      setActionMenuVisible(false);
-                      handleForkRecipe();
-                    }}
-                  >
-                    <Ionicons
-                      name="git-branch-outline"
-                      size={20}
-                      color="#8B7355"
-                      style={{ marginRight: 12 }}
-                    />
-                    <ThemedText style={styles.actionMenuText}>
-                      Fork Recipe
-                    </ThemedText>
-                  </TouchableOpacity>
-                  {/* Only show share option if user owns the recipe */}
-                  {isOwner && (
+                    <TouchableOpacity
+                      onPress={() => setActionMenuVisible(false)}
+                      style={styles.actionMenuCloseButton}
+                    >
+                      <Ionicons name="close" size={20} color="#8B7355" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Action Items */}
+                  <View style={styles.actionMenuItems}>
                     <TouchableOpacity
                       style={styles.actionMenuItem}
                       onPress={() => {
                         setActionMenuVisible(false);
-                        setShareModalVisible(true);
+                        handleCopyAsMarkdown();
                       }}
                     >
+                      <View style={styles.actionMenuItemIcon}>
+                        <Ionicons
+                          name="copy-outline"
+                          size={22}
+                          color="#8B7355"
+                        />
+                      </View>
+                      <View style={styles.actionMenuItemContent}>
+                        <ThemedText style={styles.actionMenuText}>
+                          Copy as Markdown
+                        </ThemedText>
+                        <ThemedText style={styles.actionMenuSubtext}>
+                          Copy recipe to clipboard
+                        </ThemedText>
+                      </View>
                       <Ionicons
-                        name="share-social-outline"
-                        size={20}
+                        name="chevron-forward"
+                        size={16}
                         color="#8B7355"
-                        style={{ marginRight: 12 }}
                       />
-                      <ThemedText style={styles.actionMenuText}>
-                        Share Recipe
-                      </ThemedText>
                     </TouchableOpacity>
-                  )}
+
+                    <TouchableOpacity
+                      style={styles.actionMenuItem}
+                      onPress={() => {
+                        setActionMenuVisible(false);
+                        handleForkRecipe();
+                      }}
+                    >
+                      <View style={styles.actionMenuItemIcon}>
+                        <Ionicons
+                          name="git-branch-outline"
+                          size={22}
+                          color="#8B7355"
+                        />
+                      </View>
+                      <View style={styles.actionMenuItemContent}>
+                        <ThemedText style={styles.actionMenuText}>
+                          Fork Recipe
+                        </ThemedText>
+                        <ThemedText style={styles.actionMenuSubtext}>
+                          Create a variation
+                        </ThemedText>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color="#8B7355"
+                      />
+                    </TouchableOpacity>
+
+                    {/* Only show share option if user owns the recipe */}
+                    {isOwner && (
+                      <TouchableOpacity
+                        style={[
+                          styles.actionMenuItem,
+                          styles.actionMenuItemLast,
+                        ]}
+                        onPress={() => {
+                          setActionMenuVisible(false);
+                          setShareModalVisible(true);
+                        }}
+                      >
+                        <View style={styles.actionMenuItemIcon}>
+                          <Ionicons
+                            name="share-social-outline"
+                            size={22}
+                            color="#8B7355"
+                          />
+                        </View>
+                        <View style={styles.actionMenuItemContent}>
+                          <ThemedText style={styles.actionMenuText}>
+                            Share Recipe
+                          </ThemedText>
+                          <ThemedText style={styles.actionMenuSubtext}>
+                            Share with others
+                          </ThemedText>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color="#8B7355"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </TouchableWithoutFeedback>
             </View>
@@ -781,22 +835,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E8E0D0",
   },
   backButton: {
-    padding: 8,
+    padding: 6,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
     color: "#5D4E37",
     flex: 1,
     textAlign: "center",
   },
   historyButton: {
-    padding: 8,
+    padding: 6,
   },
   content: {
     flex: 1,
@@ -1227,19 +1281,73 @@ const styles = StyleSheet.create({
   },
   actionMenuContainer: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
-    width: "80%",
-    maxWidth: 400,
+    borderRadius: 20,
+    width: "85%",
+    maxWidth: 350,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  actionMenuHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8E0D0",
+  },
+  actionMenuTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#5D4E37",
+  },
+  actionMenuCloseButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#F8F6F1",
+  },
+  actionMenuItems: {
+    paddingVertical: 8,
   },
   actionMenuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8F6F1",
+  },
+  actionMenuItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F8F6F1",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  actionMenuItemContent: {
+    flex: 1,
   },
   actionMenuText: {
-    color: "#8B7355",
+    color: "#5D4E37",
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 2,
+  },
+  actionMenuSubtext: {
+    color: "#8B7355",
+    fontSize: 14,
+    fontWeight: "400",
+  },
+  actionMenuItemLast: {
+    borderBottomWidth: 0,
   },
 });

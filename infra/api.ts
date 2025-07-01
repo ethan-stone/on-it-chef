@@ -13,6 +13,7 @@ export const apiFn = new sst.aws.Function("ApiFn", {
   environment: {
     ENVIRONMENT: $app.stage === "production" ? "production" : "development",
   },
+  timeout: "30 seconds",
 });
 
 export const router = new sst.aws.Router("ApiRouter", {
