@@ -24,6 +24,43 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 import { ThemedView } from "@/components/ThemedView";
 
+// Recipe Skeleton Component
+const RecipeSkeleton = () => (
+  <View style={styles.recipeCard}>
+    <View style={styles.recipeContent}>
+      <View style={styles.recipeHeader}>
+        <View style={styles.skeletonTitle} />
+      </View>
+      <View style={styles.skeletonDescription} />
+      <View style={styles.recipeMeta}>
+        <View style={styles.metaItem}>
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonMetaText} />
+        </View>
+        <View style={styles.metaItem}>
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonMetaText} />
+        </View>
+      </View>
+    </View>
+    <View style={styles.recipeArrow}>
+      <View style={styles.skeletonArrow} />
+    </View>
+  </View>
+);
+
+// Loading Skeleton List Component
+const LoadingSkeleton = () => (
+  <FlatList
+    data={Array.from({ length: 6 }, (_, i) => i)}
+    renderItem={() => <RecipeSkeleton />}
+    keyExtractor={(item) => item.toString()}
+    style={styles.recipeList}
+    contentContainerStyle={styles.recipeListContent}
+    showsVerticalScrollIndicator={false}
+  />
+);
+
 export default function Recipes() {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -323,12 +360,7 @@ export default function Recipes() {
 
         {/* Loading State */}
         {currentIsLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8B7355" />
-            <ThemedText style={styles.loadingText}>
-              {isSearching ? "Searching recipes..." : "Loading recipes..."}
-            </ThemedText>
-          </View>
+          <LoadingSkeleton />
         ) : currentError ? (
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color="#8B7355" />
@@ -568,5 +600,38 @@ const styles = StyleSheet.create({
   },
   recipeListContent: {
     paddingBottom: 16,
+  },
+  skeletonTitle: {
+    height: 20,
+    width: "80%",
+    backgroundColor: "#E8E0D0",
+    borderRadius: 4,
+  },
+  skeletonDescription: {
+    height: 40,
+    width: "100%",
+    backgroundColor: "#E8E0D0",
+    borderRadius: 4,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  skeletonIcon: {
+    height: 16,
+    width: 16,
+    backgroundColor: "#E8E0D0",
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  skeletonMetaText: {
+    height: 14,
+    width: 60,
+    backgroundColor: "#E8E0D0",
+    borderRadius: 4,
+  },
+  skeletonArrow: {
+    height: 20,
+    width: 20,
+    backgroundColor: "#E8E0D0",
+    borderRadius: 10,
   },
 });
