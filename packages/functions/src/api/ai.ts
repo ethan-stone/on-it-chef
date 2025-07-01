@@ -13,7 +13,14 @@ const AIRecipeResponse = z.object({
   prepTime: z.number(), // in minutes
   cookTime: z.number(), // in minutes
   servings: z.number(),
-  ingredients: z.array(z.string()),
+  ingredients: z.array(
+    z.object({
+      description: z.string(),
+      name: z.string(),
+      quantity: z.number(),
+      unit: z.string().nullish(),
+    })
+  ),
   instructions: z.array(z.string()),
 });
 
@@ -29,7 +36,14 @@ IMPORTANT: You must respond with ONLY valid JSON that exactly matches this schem
   "prepTime": number - Preparation time in minutes,
   "cookTime": number - Cooking time in minutes,
   "servings": number - Number of servings this recipe makes,
-  "ingredients": ["string"] - Array of ingredients with measurements and preparation notes,
+  "ingredients": [
+    {
+      "description": "string - A full description of the ingredient. For example, '1 lb fettuccine pasta' or '4 cloves garlic, minced'. This is used for search and display purposes.",
+      "name": "string - The name of the ingredient. For example, 'fettuccine pasta' or 'garlic cloves'. This should be the raw ingredient name. Do not include any preparation instructions or quantities. For example 'garlic cloves minced' should just be 'garlic cloves' and 'celery stalks chopped' should just be 'celery stalks'.",
+      "quantity": number - The quantity of the ingredient. For example, 1 or 4.,
+      "unit": "string - The unit of the ingredient. This should strictly be a unit of measurement. For example 'lb' or 'liters'. This shouldn't be an abstract thing like 'cloves' or 'stalks'. That should be in the name and description."
+    }
+  ] - Array of ingredients with measurements and preparation notes,
   "instructions": ["string"] - Array of step-by-step cooking instructions
 }
 
@@ -55,14 +69,48 @@ Example response format:
   "cookTime": 20,
   "servings": 4,
   "ingredients": [
-    "1 lb fettuccine pasta",
-    "4 tbsp butter",
-    "4 cloves garlic, minced",
-    "1 cup heavy cream",
-    "1 cup grated parmesan cheese",
-    "1/4 cup fresh parsley, chopped",
-    "Salt and pepper to taste"
-  ],
+    {
+      "description": "1 lb fettuccine pasta",
+      "name": "fettuccine pasta",
+      "quantity": 1,
+      "unit": "lb"
+    },
+    {
+      "description": "4 tbsp butter",
+      "name": "butter",
+      "quantity": 4,
+      "unit": "tbsp"
+    },
+    {
+      "description": "4 cloves garlic, minced",
+      "name": "garlic cloves",
+      "quantity": 4,
+    },
+    {
+      "description": "1 cup heavy cream",
+      "name": "heavy cream",
+      "quantity": 1,
+      "unit": "cup"
+    },
+    {
+      "description": "1/4 cup fresh parsley, chopped",
+      "name": "fresh parsley",
+      "quantity": 1/4,
+      "unit": "cup"
+    },
+    {
+      "description": "1 cup grated parmesan cheese",
+      "name": "parmesan cheese",
+      "quantity": 1,
+      "unit": "cup"
+    },
+    {
+      "description": "Salt and pepper to taste",
+      "name": "salt",
+      "quantity": 1,
+      "unit": "tsp"
+    },
+  ,
   "instructions": [
     "Bring a large pot of salted water to boil and cook pasta according to package directions",
     "In a large skillet, melt butter over medium heat",
@@ -85,7 +133,14 @@ IMPORTANT: You must respond with ONLY valid JSON that exactly matches this schem
   "prepTime": number - Preparation time in minutes,
   "cookTime": number - Cooking time in minutes,
   "servings": number - Number of servings this recipe makes,
-  "ingredients": ["string"] - Array of ingredients with measurements and preparation notes,
+  "ingredients": [
+    {
+      "description": "string - A full description of the ingredient. For example, '1 lb fettuccine pasta' or '4 cloves garlic, minced'. This is used for search and display purposes.",
+      "name": "string - The name of the ingredient. For example, 'fettuccine pasta' or 'garlic cloves'. This should be the raw ingredient name. Do not include any preparation instructions or quantities. For example 'garlic cloves minced' should just be 'garlic cloves' and 'celery stalks chopped' should just be 'celery stalks'.",
+      "quantity": number - The quantity of the ingredient. For example, 1 or 4.,
+      "unit": "string - The unit of the ingredient. This should strictly be a unit of measurement. For example 'lb' or 'liters'. This shouldn't be an abstract thing like 'cloves' or 'stalks'. That should be in the name and description."
+    }
+  ] - Array of ingredients with measurements and preparation notes,
   "instructions": ["string"] - Array of step-by-step cooking instructions
 }
 
@@ -237,7 +292,14 @@ IMPORTANT: You must respond with ONLY valid JSON that exactly matches this schem
   "prepTime": number - Preparation time in minutes,
   "cookTime": number - Cooking time in minutes,
   "servings": number - Number of servings this recipe makes,
-  "ingredients": ["string"] - Array of ingredients with measurements and preparation notes,
+  "ingredients": [
+    {
+      "description": "string - A full description of the ingredient. For example, '1 lb fettuccine pasta' or '4 cloves garlic, minced'. This is used for search and display purposes.",
+      "name": "string - The name of the ingredient. For example, 'fettuccine pasta' or 'garlic cloves'. This should be the raw ingredient name. Do not include any preparation instructions or quantities. For example 'garlic cloves minced' should just be 'garlic cloves' and 'celery stalks chopped' should just be 'celery stalks'.",
+      "quantity": number - The quantity of the ingredient. For example, 1 or 4.,
+      "unit": "string - The unit of the ingredient. This should strictly be a unit of measurement. For example 'lb' or 'liters'. This shouldn't be an abstract thing like 'cloves' or 'stalks'. That should be in the name and description."
+    }
+  ] - Array of ingredients with measurements and preparation notes,
   "instructions": ["string"] - Array of step-by-step cooking instructions
 }
 

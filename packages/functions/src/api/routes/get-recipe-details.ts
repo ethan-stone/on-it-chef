@@ -33,7 +33,14 @@ const route = createRoute({
                   prepTime: z.number(),
                   cookTime: z.number(),
                   servings: z.number(),
-                  ingredients: z.array(z.string()),
+                  ingredients: z.array(
+                    z.object({
+                      description: z.string(),
+                      name: z.string(),
+                      quantity: z.number(),
+                      unit: z.string().nullish(),
+                    })
+                  ),
                   instructions: z.array(z.string()),
                   createdAt: z.string().datetime(),
                 })

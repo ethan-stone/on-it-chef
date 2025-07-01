@@ -2,6 +2,34 @@ import { Collection, MongoClient } from "mongodb";
 import { ulid } from "ulid";
 import { z } from "zod";
 
+const Ingredient = z
+  .object({
+    description: z
+      .string()
+      .describe(
+        "A full description of the ingredient. For example, '1 lb fettuccine pasta' or '4 cloves garlic, minced'. This is used for search and display purposes."
+      ),
+    name: z
+      .string()
+      .describe(
+        "The name of the ingredient. For example, 'fettuccine pasta' or 'garlic cloves'. This should be the raw ingredient name. Do not include any preparation instructions or quantities. For example 'garlic cloves minced' should just be 'garlic cloves' and 'celery stalks chopped' should just be 'celery stalks'."
+      ),
+    quantity: z
+      .number()
+      .describe("The quantity of the ingredient. For example, 1 or 4."),
+    unit: z
+      .string()
+      .nullish()
+      .describe(
+        "The unit of the ingredient. This should strictly be a unit of measurement. For example 'lb' or 'liters'. This shouldn't be an abstract thing like 'cloves' or 'stalks'. That should be in the name and description."
+      ),
+  })
+  .describe(
+    "An ingredient in a recipe. The description is used for search and display purposes. The name, quantity, and unit are used for integration purposes that require more detail."
+  );
+
+export type Ingredient = z.infer<typeof Ingredient>;
+
 const RecipeVersion = z.object({
   id: z.string(),
   recipeId: z.string(),
@@ -12,7 +40,7 @@ const RecipeVersion = z.object({
   prepTime: z.number(), // in minutes
   cookTime: z.number(), // in minutes
   servings: z.number(),
-  ingredients: z.array(z.string()),
+  ingredients: z.array(Ingredient),
   instructions: z.array(z.string()),
   createdAt: z.date(),
 });
@@ -400,7 +428,7 @@ export class RecipeService {
       prepTime: number;
       cookTime: number;
       servings: number;
-      ingredients: string[];
+      ingredients: Ingredient[];
       instructions: string[];
     },
     userGivenName?: string,

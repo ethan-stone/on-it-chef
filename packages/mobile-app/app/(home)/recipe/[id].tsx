@@ -392,11 +392,11 @@ ${version.instructions
               </View>
               <View style={styles.ingredientsList}>
                 {selectedVersion?.ingredients.map(
-                  (ingredient: string, index: number) => (
+                  (ingredient, index: number) => (
                     <View key={index} style={styles.ingredientItem}>
                       <View style={styles.ingredientBullet} />
                       <ThemedText style={styles.ingredientText}>
-                        {ingredient}
+                        {ingredient.description}
                       </ThemedText>
                     </View>
                   )

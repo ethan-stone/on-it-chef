@@ -341,7 +341,7 @@ export default function Recipes() {
         ) : (
           /* Recipe List with Infinite Scroll */
           <FlatList
-            data={allRecipes}
+            data={allRecipes as Recipe[]}
             renderItem={renderRecipeItem}
             keyExtractor={(item) => item.id}
             style={styles.recipeList}
