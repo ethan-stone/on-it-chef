@@ -375,11 +375,9 @@ ${version.instructions
                   color="#8B7355"
                 />
                 <ThemedText style={styles.forkInfoText}>
-                  Want to create a variation? Use the &ldquo;Fork&rdquo; button
-                  to create a new recipe based on this version. You&apos;ll be
-                  able to describe the changes you want, and AI will generate a
-                  new recipe for you. Perfect for making vegetarian, vegan, or
-                  other adaptations while keeping the original intact.
+                  Use the &ldquo;Fork&rdquo; button to create variations like
+                  vegetarian, vegan, or other adaptations while keeping the
+                  original intact.
                 </ThemedText>
               </View>
             </View>
