@@ -20,7 +20,7 @@ import {
 } from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
-import { useQueryClient } from "@tanstack/react-query";
+import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-expo";
 import { ThemedView } from "@/components/ThemedView";
 
@@ -159,32 +159,40 @@ export default function Recipes() {
           style: "destructive",
           onPress: async () => {
             // Optimistic update - immediately remove from cache
-            queryClient.setQueryData(["recipes"], (oldData: any) => {
-              if (!oldData) return oldData;
+            queryClient.setQueryData(
+              ["recipes"],
+              (
+                oldData: InfiniteData<{ recipes: Recipe[]; hasMore: boolean }>
+              ) => {
+                if (!oldData) return oldData;
 
-              return {
-                ...oldData,
-                pages: oldData.pages.map((page: any) => ({
-                  ...page,
-                  recipes: page.recipes.filter((r: any) => r.id !== recipe.id),
-                })),
-              };
-            });
+                return {
+                  ...oldData,
+                  pages: oldData.pages.map((page) => ({
+                    ...page,
+                    recipes: page.recipes.filter((r) => r.id !== recipe.id),
+                  })),
+                };
+              }
+            );
 
             // Also update search results if we're searching
             if (isSearching) {
               queryClient.setQueryData(
                 ["search-recipes", debouncedSearchQuery],
-                (oldData: any) => {
+                (
+                  oldData: InfiniteData<{
+                    recipes: Recipe[];
+                    hasMore: boolean;
+                  }>
+                ) => {
                   if (!oldData) return oldData;
 
                   return {
                     ...oldData,
-                    pages: oldData.pages.map((page: any) => ({
+                    pages: oldData.pages.map((page) => ({
                       ...page,
-                      recipes: page.recipes.filter(
-                        (r: any) => r.id !== recipe.id
-                      ),
+                      recipes: page.recipes.filter((r) => r.id !== recipe.id),
                     })),
                   };
                 }

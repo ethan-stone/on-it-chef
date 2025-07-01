@@ -376,9 +376,9 @@ export async function fetchRecipeDetails(
   return details;
 }
 
-export type RecipeVersion = Awaited<
-  ReturnType<typeof fetchRecipeDetails>
->["versions"]["versions"][number];
+export type RecipeDetails = Awaited<ReturnType<typeof fetchRecipeDetails>>;
+
+export type RecipeVersion = RecipeDetails["versions"]["versions"][number];
 
 export function useGetRecipeDetails(recipeId: string) {
   const { replace } = useRouter();
