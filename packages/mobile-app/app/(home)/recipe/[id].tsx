@@ -24,11 +24,13 @@ import {
 } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedVersion, setSelectedVersion] = useState<RecipeVersion | null>(
     null
   );
@@ -66,7 +68,7 @@ export default function RecipeDetail() {
   // Set the most recent version as default when data loads
   useEffect(() => {
     if (allVersions.length > 0) {
-      // Always select the first version (most recent) when data changes
+      // Always select the last version (most recent) when data changes
       setSelectedVersion(allVersions[0]);
     }
   }, [allVersions]);
@@ -163,21 +165,17 @@ ${version.instructions
     }
 
     try {
-      const updatedRecipe = await generateVersionMutation.mutateAsync({
+      await generateVersionMutation.mutateAsync({
         recipeId: id as string,
         message: newVersionMessage.trim(),
       });
       setModalVisible(false);
       setNewVersionMessage("");
 
-      // Manually set the newest version from the response
-      if (
-        updatedRecipe.recentVersions &&
-        updatedRecipe.recentVersions.length > 0
-      ) {
-        console.log("Setting new version:", updatedRecipe.recentVersions[0]);
-        setSelectedVersion(updatedRecipe.recentVersions[0]);
-      }
+      // Invalidate the recipe details query to refetch with the new version
+      await queryClient.invalidateQueries({
+        queryKey: ["recipe-details", id],
+      });
 
       showToast("New recipe version generated successfully!", "success");
     } catch (error) {
