@@ -108,10 +108,18 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       });
     }
 
-    if (sourceRecipe.userId !== user.id) {
+    // Check if user owns the recipe or if it's shared with them
+    const isOwner = sourceRecipe.userId === user.id;
+    const sharedRecipe = await root.services.recipesService.getSharedRecipe(
+      sourceRecipeId,
+      user.id
+    );
+    const isShared = !isOwner && !!sharedRecipe;
+
+    if (!isOwner && !isShared) {
       throw new HTTPException({
         reason: "FORBIDDEN",
-        message: "You cannot fork your own recipe",
+        message: "You don't have permission to fork this recipe",
       });
     }
 

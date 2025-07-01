@@ -148,7 +148,6 @@ export default function Recipes() {
 
   // Helper function to get recipe name
   const getRecipeName = (recipe: Recipe) => {
-    console.log("recipe", JSON.stringify(recipe, null, 2));
     return recipe.userGivenName || recipe.generatedName;
   };
 

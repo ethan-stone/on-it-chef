@@ -24,6 +24,8 @@ import {
   useShareRecipe,
 } from "@/api/recipes";
 import { useToast } from "@/components/ToastContext";
+import { useGetLoggedInUser } from "@/api/users";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function RecipeDetail() {
   const { id } = useLocalSearchParams();
@@ -32,6 +34,9 @@ export default function RecipeDetail() {
   const [selectedVersion, setSelectedVersion] = useState<RecipeVersion | null>(
     null
   );
+  const { data: user } = useGetLoggedInUser();
+  const [newVersionMessage, setNewVersionMessage] = useState("");
+  const [inputError, setInputError] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const newVersionInputRef = useRef<TextInput>(null);
@@ -40,6 +45,7 @@ export default function RecipeDetail() {
   const [shareEmail, setShareEmail] = useState("");
   const [shareError, setShareError] = useState("");
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const queryClient = useQueryClient();
 
   const {
     data: versionsData,
@@ -49,6 +55,10 @@ export default function RecipeDetail() {
     hasNextPage,
     isFetchingNextPage,
   } = useGetRecipeDetails(id as string);
+
+  // Get ownership information from the first page
+  const isOwner = versionsData?.pages[0]?.isOwner ?? false;
+  // const isShared = versionsData?.pages[0]?.isShared ?? false;
 
   const generateVersionMutation = useGenerateRecipeVersion();
 
@@ -184,6 +194,33 @@ ${version.instructions
     }
   };
 
+  const handleGenerateVersion = async () => {
+    setInputError("");
+    if (!newVersionMessage.trim()) {
+      setInputError("Please describe the changes you want to make.");
+      return;
+    }
+
+    try {
+      await generateVersionMutation.mutateAsync({
+        recipeId: id as string,
+        message: newVersionMessage.trim(),
+      });
+      setModalVisible(false);
+      setNewVersionMessage("");
+
+      // Invalidate the recipe details query to refetch with the new version
+      await queryClient.invalidateQueries({
+        queryKey: ["recipe-details", id],
+      });
+
+      showToast("New recipe version generated successfully!", "success");
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to generate new version. Please try again.", "error");
+    }
+  };
+
   // Render version history item
   const renderVersionItem = ({ item: version }: { item: any }) => (
     <TouchableOpacity
@@ -259,7 +296,6 @@ ${version.instructions
             <Ionicons name="ellipsis-horizontal" size={28} color="#8B7355" />
           </TouchableOpacity>
         </View>
-
         {/* Action Menu Modal */}
         <Modal
           animationType="fade"
@@ -305,29 +341,31 @@ ${version.instructions
                       Fork Recipe
                     </ThemedText>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
-                    onPress={() => {
-                      setActionMenuVisible(false);
-                      setShareModalVisible(true);
-                    }}
-                  >
-                    <Ionicons
-                      name="share-social-outline"
-                      size={20}
-                      color="#8B7355"
-                      style={{ marginRight: 12 }}
-                    />
-                    <ThemedText style={styles.actionMenuText}>
-                      Share Recipe
-                    </ThemedText>
-                  </TouchableOpacity>
+                  {/* Only show share option if user owns the recipe */}
+                  {isOwner && (
+                    <TouchableOpacity
+                      style={styles.actionMenuItem}
+                      onPress={() => {
+                        setActionMenuVisible(false);
+                        setShareModalVisible(true);
+                      }}
+                    >
+                      <Ionicons
+                        name="share-social-outline"
+                        size={20}
+                        color="#8B7355"
+                        style={{ marginRight: 12 }}
+                      />
+                      <ThemedText style={styles.actionMenuText}>
+                        Share Recipe
+                      </ThemedText>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </TouchableWithoutFeedback>
             </View>
           </TouchableWithoutFeedback>
         </Modal>
-
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
             ref={scrollViewRef}
@@ -499,31 +537,134 @@ ${version.instructions
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
-
         {/* Generate New Version Button */}
-        <View style={styles.generateButtonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.generateButton,
-              generateVersionMutation.isPending &&
-                styles.generateButtonDisabled,
-            ]}
-            onPress={() => setModalVisible(true)}
-            disabled={generateVersionMutation.isPending}
-          >
-            {generateVersionMutation.isPending ? (
-              <ActivityIndicator size="small" color="#F8F6F1" />
-            ) : (
-              <Ionicons name="add-circle-outline" size={24} color="#F8F6F1" />
-            )}
-            <ThemedText style={styles.generateButtonText}>
-              {generateVersionMutation.isPending
-                ? "Generating..."
-                : "Generate New Version"}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
+        {isOwner && (
+          <View style={styles.generateButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.generateButton,
+                generateVersionMutation.isPending &&
+                  styles.generateButtonDisabled,
+              ]}
+              onPress={() => isOwner && setModalVisible(true)}
+              disabled={generateVersionMutation.isPending}
+            >
+              {generateVersionMutation.isPending ? (
+                <ActivityIndicator size="small" color="#F8F6F1" />
+              ) : (
+                <Ionicons name="add-circle-outline" size={24} color="#F8F6F1" />
+              )}
+              <ThemedText style={styles.generateButtonText}>
+                {generateVersionMutation.isPending
+                  ? "Generating..."
+                  : "Generate New Version"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+        {/* Generate New Version Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(false);
+            setNewVersionMessage("");
+          }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={styles.modalContainer}>
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <Ionicons name="create-outline" size={28} color="#8B7355" />
+                    <ThemedText style={styles.modalTitle}>
+                      Generate New Version
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => setModalVisible(false)}
+                      style={styles.closeButton}
+                    >
+                      <Ionicons name="close" size={24} color="#8B7355" />
+                    </TouchableOpacity>
+                  </View>
 
+                  {/* Modal Content */}
+                  <View style={styles.modalContent}>
+                    <ThemedText style={styles.modalSubtitle}>
+                      Describe the changes you&apos;d like to make to this
+                      recipe
+                    </ThemedText>
+
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="e.g., Make it spicier, add more vegetables, reduce cooking time..."
+                      placeholderTextColor="#A69B8D"
+                      value={newVersionMessage}
+                      onChangeText={setNewVersionMessage}
+                      multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
+                      ref={newVersionInputRef}
+                    />
+
+                    {user?.dietaryRestrictions && (
+                      <View style={styles.dietaryNote}>
+                        <Ionicons
+                          name="information-circle-outline"
+                          size={16}
+                          color="#8B7355"
+                        />
+                        <ThemedText style={styles.dietaryNoteText}>
+                          Your dietary restrictions ({user.dietaryRestrictions})
+                          will be automatically applied
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    {inputError ? (
+                      <ThemedText style={styles.errorText}>
+                        {inputError}
+                      </ThemedText>
+                    ) : null}
+                  </View>
+
+                  {/* Modal Actions */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setModalVisible(false);
+                        setNewVersionMessage("");
+                      }}
+                    >
+                      <ThemedText style={styles.cancelButtonText}>
+                        Cancel
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.createButton]}
+                      onPress={handleGenerateVersion}
+                      disabled={generateVersionMutation.isPending}
+                    >
+                      {generateVersionMutation.isPending ? (
+                        <ActivityIndicator size="small" color="#F8F6F1" />
+                      ) : (
+                        <View style={styles.buttonContent}>
+                          <Ionicons name="create" size={20} color="#F8F6F1" />
+                          <ThemedText style={styles.createButtonText}>
+                            Generate
+                          </ThemedText>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
         {/* Share Recipe Modal */}
         <Modal
           animationType="slide"
@@ -824,9 +965,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#8B7355",
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   generateButtonDisabled: {
     backgroundColor: "#A8A8A8",
@@ -834,9 +975,9 @@ const styles = StyleSheet.create({
   },
   generateButtonText: {
     color: "#F8F6F1",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginLeft: 8,
+    marginLeft: 6,
   },
   loadingContainer: {
     flex: 1,

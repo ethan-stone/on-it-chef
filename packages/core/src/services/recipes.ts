@@ -627,6 +627,10 @@ export class RecipeService {
       throw error;
     } finally {
       await session.endSession();
+
+      const duration = Date.now() - startTime;
+
+      console.log(`[DB] shareRecipe: ${duration}ms`);
     }
   }
 
@@ -686,5 +690,19 @@ export class RecipeService {
       hasMore: total > page * limit,
       recipes: recipesWithSharedInfo,
     };
+  }
+
+  async getSharedRecipe(
+    recipeId: string,
+    sharedWith: string
+  ): Promise<SharedRecipe | null> {
+    const startTime = Date.now();
+    const mongoSharedRecipe = await this.sharedRecipesColl.findOne({
+      recipeId,
+      sharedWith,
+    });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getSharedRecipe: ${duration}ms`);
+    return mongoSharedRecipe ? fromMongo.sharedRecipe(mongoSharedRecipe) : null;
   }
 }

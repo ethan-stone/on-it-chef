@@ -56,6 +56,8 @@ const route = createRoute({
                 createdAt: z.string().datetime(),
               })
             ),
+            isOwner: z.boolean(),
+            isShared: z.boolean(),
           }),
         },
       },
@@ -91,7 +93,17 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       });
     }
 
-    if (recipe.userId !== user.id) {
+    const sharedRecipe = await root.services.recipesService.getSharedRecipe(
+      recipeId,
+      user.id
+    );
+
+    // Determine if user owns the recipe or if it's shared with them
+    const isOwner = recipe.userId === user.id;
+    const isShared = !isOwner && !!sharedRecipe;
+
+    // If the recipe is not owned by the user, and it's not shared with the user, throw an error
+    if (!isOwner && !isShared) {
       throw new HTTPException({
         reason: "FORBIDDEN",
         message: "You don't have permission to view this recipe",
@@ -114,6 +126,8 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       {
         versions: versionsResult,
         prompts: prompts,
+        isOwner,
+        isShared,
       },
       200
     );
