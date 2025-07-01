@@ -60,7 +60,12 @@ async function createIndexes() {
                 type: "string",
               },
               ingredients: {
-                type: "string",
+                type: "document",
+                fields: {
+                  description: {
+                    type: "string",
+                  },
+                },
               },
             },
           },

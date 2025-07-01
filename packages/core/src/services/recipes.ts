@@ -563,7 +563,7 @@ export class RecipeService {
                   path: [
                     "userGivenName",
                     "recentVersions.generatedName",
-                    "recentVersions.ingredients",
+                    "recentVersions.ingredients.description",
                   ],
                 },
               },
@@ -585,8 +585,6 @@ export class RecipeService {
     ]);
 
     const mongoRecipesArray = (await mongoRecipes.toArray()) as MongoRecipe[];
-
-    console.log(mongoRecipesArray);
 
     const duration = Date.now() - startTime;
 
