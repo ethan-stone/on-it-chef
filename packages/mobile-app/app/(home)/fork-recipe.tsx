@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useForkRecipe, useListRecipeVersions } from "@/api/recipes";
+import { useForkRecipe, useGetRecipeDetails } from "@/api/recipes";
 import { useGetLoggedInUser } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
 
@@ -26,7 +26,7 @@ export default function ForkRecipe() {
   const { id, versionId } = useLocalSearchParams();
   const { data: user } = useGetLoggedInUser();
   const forkRecipeMutation = useForkRecipe();
-  const { data: versionsData } = useListRecipeVersions(id as string);
+  const { data: versionsData } = useGetRecipeDetails(id as string);
 
   const [forkPrompt, setForkPrompt] = useState("");
   const [inputError, setInputError] = useState("");
@@ -61,9 +61,9 @@ export default function ForkRecipe() {
 
   // Get the source version
   const allVersions =
-    versionsData?.pages.flatMap((page) => page.versions || []) || [];
-  const sourceVersion =
-    allVersions.find((v) => v.id === versionId) || allVersions[0];
+    versionsData?.pages.flatMap((page) => page.versions.versions || []) || [];
+  const sourceVersion: any =
+    allVersions.find((v: any) => v.id === versionId) || allVersions[0];
 
   const handleForkRecipe = async () => {
     setInputError("");
