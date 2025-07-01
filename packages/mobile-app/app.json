@@ -37,6 +37,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "07615505-bf36-4f52-ab5a-3852393f9ca1"
+      }
+    },
+    "owner": "estone55"
   }
 }
