@@ -5,6 +5,7 @@ import {
   MongoRecipePrompt,
   MongoRecipeVersion,
 } from "../services/recipes";
+import { MongoUser } from "../services/users";
 
 const mongoUrl = Resource.MongoUrl.value;
 
@@ -15,6 +16,16 @@ async function createIndexes() {
   const recipes = db.collection<MongoRecipe>("recipes");
   const recipeVersions = db.collection<MongoRecipeVersion>("recipeVersions");
   const recipePrompts = db.collection<MongoRecipePrompt>("recipePrompts");
+  const users = db.collection<MongoUser>("users");
+
+  await users.createIndex(
+    {
+      email: 1,
+    },
+    {
+      unique: true,
+    }
+  );
 
   await recipes.createIndex({
     userId: 1,

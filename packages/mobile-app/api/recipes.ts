@@ -12,7 +12,10 @@ export type Recipe = NonNullable<
   NonNullable<
     NonNullable<ReturnType<typeof useListRecipes>>["data"]
   >["pages"][number]
->["recipes"][number];
+>["recipes"][number] & {
+  sharedBy?: string; // user id
+  sharedAt?: string; // ISO string
+};
 
 export function useListRecipes() {
   const { replace } = useRouter();
@@ -471,4 +474,72 @@ export function useSearchRecipes(query: string) {
   });
 
   return searchQuery;
+}
+
+export function useListSharedRecipes() {
+  const { replace } = useRouter();
+
+  const { isLoaded, userId, getToken } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && !userId) {
+      replace("/");
+    }
+  }, [isLoaded, userId, replace]);
+
+  const query = useInfiniteQuery({
+    queryKey: ["shared-recipes"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const startTime = Date.now();
+      console.log(
+        `🔄 [API] Starting shared recipes fetch (page ${pageParam})...`
+      );
+
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("No token");
+      }
+
+      const response = await client.api.v1["recipes.listSharedRecipes"].$get(
+        {
+          query: {
+            page: pageParam.toString(),
+            limit: "20", // Smaller page size for better UX
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error("Failed to list shared recipes");
+      }
+
+      const recipes = await response.json();
+
+      const endTime = Date.now();
+      console.log(
+        `✅ [API] Shared recipes fetch (page ${pageParam}) completed in ${
+          endTime - startTime
+        }ms`
+      );
+
+      return recipes;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      // If there are more recipes, return the next page number
+      if (lastPage.hasMore) {
+        return allPages.length + 1;
+      }
+      return undefined; // No more pages
+    },
+    initialPageParam: 1,
+    enabled: isLoaded && !!userId,
+  });
+
+  return query;
 }

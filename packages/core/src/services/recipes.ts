@@ -100,6 +100,24 @@ const MongoRecipe = Recipe.omit({
 
 export type MongoRecipe = z.infer<typeof MongoRecipe>;
 
+export const SharedRecipe = z.object({
+  id: z.string(),
+  recipeId: z.string(),
+  sharedBy: z.string(),
+  sharedWith: z.string(),
+  sharedAt: z.date(),
+});
+
+export type SharedRecipe = z.infer<typeof SharedRecipe>;
+
+const MongoSharedRecipe = SharedRecipe.omit({
+  id: true,
+}).extend({
+  _id: z.string(),
+});
+
+export type MongoSharedRecipe = z.infer<typeof MongoSharedRecipe>;
+
 const toMongo = {
   recipe: (recipe: Recipe): MongoRecipe => {
     return MongoRecipe.parse({
@@ -118,6 +136,12 @@ const toMongo = {
     return MongoRecipePrompt.parse({
       ...recipePrompt,
       _id: recipePrompt.id,
+    });
+  },
+  sharedRecipe: (sharedRecipe: SharedRecipe): MongoSharedRecipe => {
+    return MongoSharedRecipe.parse({
+      ...sharedRecipe,
+      _id: sharedRecipe.id,
     });
   },
 };
@@ -142,6 +166,12 @@ const fromMongo = {
       id: mongoRecipePrompt._id,
     });
   },
+  sharedRecipe: (mongoSharedRecipe: MongoSharedRecipe): SharedRecipe => {
+    return SharedRecipe.parse({
+      ...mongoSharedRecipe,
+      id: mongoSharedRecipe._id,
+    });
+  },
 };
 
 export class RecipeService {
@@ -149,6 +179,7 @@ export class RecipeService {
   private recipesColl: Collection<MongoRecipe>;
   private recipeVersionsColl: Collection<MongoRecipeVersion>;
   private recipePromptsColl: Collection<MongoRecipePrompt>;
+  private sharedRecipesColl: Collection<MongoSharedRecipe>;
 
   constructor(private readonly client: MongoClient) {
     this.recipesColl = this.client
@@ -160,9 +191,14 @@ export class RecipeService {
     this.recipePromptsColl = this.client
       .db(this.dbName)
       .collection<MongoRecipePrompt>("recipePrompts");
+    this.sharedRecipesColl = this.client
+      .db(this.dbName)
+      .collection<MongoSharedRecipe>("sharedRecipes");
   }
 
-  private uid(prefix: "recipe" | "recipe_ver" | "recipe_prompt") {
+  private uid(
+    prefix: "recipe" | "recipe_ver" | "recipe_prompt" | "shared_recipe"
+  ) {
     return `${prefix}_${ulid()}`;
   }
 
@@ -559,5 +595,96 @@ export class RecipeService {
     return mongoRecipesArray.map((mongoRecipe) =>
       fromMongo.recipe(mongoRecipe)
     );
+  }
+
+  async shareRecipe(recipeId: string, sharedWith: string): Promise<void> {
+    const startTime = Date.now();
+
+    const recipe = await this.getRecipe(recipeId);
+
+    if (!recipe) {
+      throw new Error("Recipe not found");
+    }
+
+    const sharedRecipe: SharedRecipe = {
+      id: this.uid("shared_recipe"),
+      recipeId: recipe.id,
+      sharedBy: recipe.userId,
+      sharedWith,
+      sharedAt: new Date(),
+    };
+
+    const mongoSharedRecipe: MongoSharedRecipe =
+      toMongo.sharedRecipe(sharedRecipe);
+
+    const session = this.client.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await this.sharedRecipesColl.insertOne(mongoSharedRecipe);
+      });
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async getSharedRecipes(
+    userId: string,
+    page: number,
+    limit: number
+  ): Promise<{
+    hasMore: boolean;
+    recipes: (Recipe & { sharedBy: string; sharedAt: Date })[];
+  }> {
+    const startTime = Date.now();
+
+    // Get shared recipes for this user
+    const mongoSharedRecipes = await this.sharedRecipesColl
+      .find({ sharedWith: userId })
+      .sort({ sharedAt: -1 }) // Sort by most recently shared first
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    // Get the actual recipes for these shared recipe IDs
+    const recipeIds = mongoSharedRecipes.map((sr) => sr.recipeId);
+    const mongoRecipes = await this.recipesColl
+      .find({ _id: { $in: recipeIds } })
+      .toArray();
+
+    // Create a map for quick lookup
+    const recipeMap = new Map(
+      mongoRecipes.map((recipe) => [recipe._id, recipe])
+    );
+
+    // Combine shared recipe info with actual recipe data
+    const recipesWithSharedInfo = mongoSharedRecipes
+      .map((sharedRecipe) => {
+        const recipe = recipeMap.get(sharedRecipe.recipeId);
+        if (!recipe) return null;
+
+        return {
+          ...fromMongo.recipe(recipe),
+          sharedBy: sharedRecipe.sharedBy,
+          sharedAt: sharedRecipe.sharedAt,
+        };
+      })
+      .filter(
+        (recipe): recipe is Recipe & { sharedBy: string; sharedAt: Date } =>
+          recipe !== null
+      );
+
+    const total = await this.sharedRecipesColl.countDocuments({
+      sharedWith: userId,
+    });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getSharedRecipes: ${duration}ms`);
+
+    return {
+      hasMore: total > page * limit,
+      recipes: recipesWithSharedInfo,
+    };
   }
 }

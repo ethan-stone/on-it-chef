@@ -69,6 +69,14 @@ export class UserService {
     return mongoUser ? fromMongo.user(mongoUser) : null;
   }
 
+  async getUserByEmail(email: string): Promise<User | null> {
+    const startTime = Date.now();
+    const mongoUser = await this.usersColl.findOne({ email });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getUserByEmail: ${duration}ms`);
+    return mongoUser ? fromMongo.user(mongoUser) : null;
+  }
+
   async upsertUser(user: User): Promise<User> {
     const startTime = Date.now();
     const mongoUser = toMongo.user(user);

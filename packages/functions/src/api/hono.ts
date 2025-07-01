@@ -22,6 +22,8 @@ import { ListRecipePrompts } from "./routes/list-recipe-prompts";
 import { ForkRecipe } from "./routes/fork-recipe";
 import { GetRecipeDetails } from "./routes/get-recipe-details";
 import { SearchRecipes } from "./routes/search-recipe";
+import { ShareRecipe } from "./routes/share-recipe";
+import { ListSharedRecipes } from "./routes/list-shared-recipes";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -151,7 +153,9 @@ const routes = app
   .openapi(UpdateUserSettings.route, UpdateUserSettings.handler)
   .openapi(ForkRecipe.route, ForkRecipe.handler)
   .openapi(GetRecipeDetails.route, GetRecipeDetails.handler)
-  .openapi(SearchRecipes.route, SearchRecipes.handler);
+  .openapi(SearchRecipes.route, SearchRecipes.handler)
+  .openapi(ShareRecipe.route, ShareRecipe.handler)
+  .openapi(ListSharedRecipes.route, ListSharedRecipes.handler);
 
 export type Routes = typeof routes;
 

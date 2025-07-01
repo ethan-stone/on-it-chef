@@ -17,6 +17,7 @@ import {
   Recipe,
   fetchRecipeDetails,
   useSearchRecipes,
+  useListSharedRecipes,
 } from "@/api/recipes";
 import { useRouter } from "expo-router";
 import { useToast } from "@/components/ToastContext";
@@ -67,6 +68,9 @@ export default function Recipes() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"my" | "shared">("my");
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -90,6 +94,15 @@ export default function Recipes() {
   } = useListRecipes();
 
   const {
+    data: sharedData,
+    isLoading: sharedIsLoading,
+    error: sharedError,
+    fetchNextPage: fetchNextSharedPage,
+    hasNextPage: hasNextSharedPage,
+    isFetchingNextPage: isFetchingNextSharedPage,
+  } = useListSharedRecipes();
+
+  const {
     data: searchData,
     isLoading: isSearchLoading,
     error: searchError,
@@ -97,11 +110,24 @@ export default function Recipes() {
 
   const deleteRecipeMutation = useDeleteRecipe();
 
-  // Determine which data to use based on search state
-  const isSearching = debouncedSearchQuery.trim().length > 0;
-  const currentData = isSearching ? searchData : data;
-  const currentIsLoading = isSearching ? isSearchLoading : isLoading;
-  const currentError = isSearching ? searchError : error;
+  // Determine which data to use based on search state and active tab
+  const isSearching =
+    debouncedSearchQuery.trim().length > 0 && activeTab === "my";
+  const currentData = isSearching
+    ? searchData
+    : activeTab === "my"
+    ? data
+    : sharedData;
+  const currentIsLoading = isSearching
+    ? isSearchLoading
+    : activeTab === "my"
+    ? isLoading
+    : sharedIsLoading;
+  const currentError = isSearching
+    ? searchError
+    : activeTab === "my"
+    ? error
+    : sharedError;
 
   // Flatten all pages of recipes into a single array
   const allRecipes =
@@ -223,8 +249,16 @@ export default function Recipes() {
 
   // Handle loading more recipes (only for non-search results)
   const handleLoadMore = () => {
-    if (!isSearching && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (!isSearching) {
+      if (activeTab === "my" && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      } else if (
+        activeTab === "shared" &&
+        hasNextSharedPage &&
+        !isFetchingNextSharedPage
+      ) {
+        fetchNextSharedPage();
+      }
     }
   };
 
@@ -262,6 +296,15 @@ export default function Recipes() {
           <ThemedText style={styles.recipeTitle}>
             {getRecipeName(recipe)}
           </ThemedText>
+          {/* Show shared info for shared recipes */}
+          {activeTab === "shared" && "sharedBy" in recipe && (
+            <View style={styles.sharedInfo}>
+              <Ionicons name="share-outline" size={14} color="#8B7355" />
+              <ThemedText style={styles.sharedText}>
+                Shared by {recipe.sharedBy}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         <ThemedText style={styles.recipeDescription}>
@@ -290,21 +333,29 @@ export default function Recipes() {
         <Ionicons name="chevron-forward" size={20} color="#8B7355" />
       </View>
 
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={(e) => {
-          e.stopPropagation();
-          handleDeleteRecipe(recipe);
-        }}
-      >
-        <Ionicons name="trash-outline" size={20} color="#D32F2F" />
-      </TouchableOpacity>
+      {/* Only show delete button for my recipes */}
+      {activeTab === "my" && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleDeleteRecipe(recipe);
+          }}
+        >
+          <Ionicons name="trash-outline" size={20} color="#D32F2F" />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 
   // Render loading indicator for next page (only for non-search results)
   const renderFooter = () => {
-    if (isSearching || !isFetchingNextPage) return null;
+    if (isSearching) return null;
+
+    const isFetchingMore =
+      activeTab === "my" ? isFetchingNextPage : isFetchingNextSharedPage;
+
+    if (!isFetchingMore) return null;
 
     return (
       <View style={styles.loadingMoreContainer}>
@@ -321,12 +372,18 @@ export default function Recipes() {
     <View style={styles.emptyContainer}>
       <Ionicons name="restaurant-outline" size={64} color="#8B7355" />
       <ThemedText style={styles.emptyTitle}>
-        {isSearching ? "No recipes found" : "No recipes yet"}
+        {isSearching
+          ? "No recipes found"
+          : activeTab === "my"
+          ? "No recipes yet"
+          : "No shared recipes"}
       </ThemedText>
       <ThemedText style={styles.emptyText}>
         {isSearching
           ? `No recipes match "${debouncedSearchQuery}"`
-          : "Start by adding your first recipe!"}
+          : activeTab === "my"
+          ? "Start by adding your first recipe!"
+          : "Recipes shared with you will appear here"}
       </ThemedText>
     </View>
   );
@@ -338,33 +395,51 @@ export default function Recipes() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Ionicons name="restaurant" size={32} color="#8B7355" />
-            <ThemedText style={styles.headerTitle}>My Recipes</ThemedText>
+            <ThemedText style={styles.headerTitle}>Recipes</ThemedText>
           </View>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color="#8B7355" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search recipes..."
-              placeholderTextColor="#8B7355"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSearchQuery("")}
-                style={styles.clearButton}
-              >
-                <Ionicons name="close-circle" size={20} color="#8B7355" />
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "my" && styles.activeTab]}
+            onPress={() => setActiveTab("my")}
+          >
+            <ThemedText style={styles.tabText}>My Recipes</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "shared" && styles.activeTab]}
+            onPress={() => setActiveTab("shared")}
+          >
+            <ThemedText style={styles.tabText}>Shared</ThemedText>
+          </TouchableOpacity>
         </View>
+
+        {/* Search Bar - Only show for My Recipes tab */}
+        {activeTab === "my" && (
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={20} color="#8B7355" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search recipes..."
+                placeholderTextColor="#8B7355"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery("")}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="#8B7355" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Loading State */}
         {currentIsLoading ? (
@@ -394,16 +469,20 @@ export default function Recipes() {
           />
         )}
 
-        {/* Add Recipe Button */}
-        <View style={styles.addButtonContainer}>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push("/create-recipe")}
-          >
-            <Ionicons name="add" size={24} color="#F8F6F1" />
-            <ThemedText style={styles.addButtonText}>Add New Recipe</ThemedText>
-          </TouchableOpacity>
-        </View>
+        {/* Add Recipe Button - Only show for My Recipes tab */}
+        {activeTab === "my" && (
+          <View style={styles.addButtonContainer}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push("/create-recipe")}
+            >
+              <Ionicons name="add" size={24} color="#F8F6F1" />
+              <ThemedText style={styles.addButtonText}>
+                Add New Recipe
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </ThemedView>
     </SafeAreaView>
   );
@@ -423,7 +502,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#E8E0D0", // Light border
   },
@@ -432,14 +511,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#5D4E37", // Dark brown text
     marginLeft: 12,
   },
+  tabContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomColor: "#E8E0D0",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: "#8B7355",
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#5D4E37",
+  },
   searchContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
   },
   searchBar: {
     flexDirection: "row",
@@ -542,6 +643,16 @@ const styles = StyleSheet.create({
     color: "#5D4E37", // Dark brown text
     flex: 1,
   },
+  sharedInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  sharedText: {
+    fontSize: 12,
+    color: "#8B7355",
+    marginLeft: 4,
+  },
   recipeDescription: {
     fontSize: 14,
     color: "#8B7355", // Medium brown text
@@ -576,7 +687,7 @@ const styles = StyleSheet.create({
   },
   addButtonContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: "#E8E0D0",
   },
@@ -585,15 +696,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#8B7355", // Medium brown
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   addButtonText: {
     color: "#F8F6F1", // Light book page color
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginLeft: 8,
+    marginLeft: 6,
   },
   loadingMoreContainer: {
     flexDirection: "row",
