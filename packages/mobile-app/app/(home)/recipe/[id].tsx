@@ -352,7 +352,10 @@ ${version.instructions
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.actionMenuItem}
+                      style={[
+                        styles.actionMenuItem,
+                        !isOwner && styles.actionMenuItemLast,
+                      ]}
                       onPress={() => {
                         setActionMenuVisible(false);
                         handleForkRecipe();
