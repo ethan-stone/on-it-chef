@@ -216,11 +216,7 @@ export default function Settings() {
                     disabled={!item.onPress || isPresentingPaywall}
                   >
                     <View style={styles.settingIcon}>
-                      <Ionicons
-                        name={item.icon as any}
-                        size={24}
-                        color="#8B7355"
-                      />
+                      <Ionicons name={item.icon} size={24} color="#8B7355" />
                     </View>
 
                     <View style={styles.settingContent}>
