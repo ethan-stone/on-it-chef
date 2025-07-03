@@ -16,6 +16,8 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { useGetLoggedInUser, useUpdateUserSettings } from "@/api/users";
 import { useToast } from "@/components/ToastContext";
 import React, { useState, useEffect, useRef } from "react";
+import Purchases from "react-native-purchases";
+import PurchasesPaywall from "react-native-purchases-ui";
 
 type SettingItem = {
   icon: string;
@@ -41,6 +43,7 @@ export default function Settings() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<TextInput>(null);
+  const [isPresentingPaywall, setIsPresentingPaywall] = useState(false);
 
   // Update local state when user data changes
   useEffect(() => {
@@ -86,6 +89,25 @@ export default function Settings() {
   const handleEditDietaryRestrictions = () => {
     setEditValue(dietaryRestrictions);
     setModalVisible(true);
+  };
+
+  const handlePresentPaywall = async () => {
+    setIsPresentingPaywall(true);
+    try {
+      const offerings = await Purchases.getOfferings();
+      const defaultOffering = offerings.current;
+
+      if (defaultOffering) {
+        await PurchasesPaywall.presentPaywall({ offering: defaultOffering });
+      } else {
+        showToast("No offerings available", "error");
+      }
+    } catch (error) {
+      console.error("Error presenting paywall:", error);
+      showToast("Failed to present paywall", "error");
+    } finally {
+      setIsPresentingPaywall(false);
+    }
   };
 
   const getDietaryRestrictionsDisplay = () => {
@@ -134,6 +156,22 @@ export default function Settings() {
           subtitle: "Version 1.0.0",
           action: "chevron-forward",
         },
+        {
+          icon: "card-outline",
+          title: "Test Paywall",
+          subtitle: isPresentingPaywall
+            ? "Presenting paywall..."
+            : "Present RevenueCat paywall",
+          action: "none",
+          onPress: handlePresentPaywall,
+          customContent: isPresentingPaywall ? (
+            <ActivityIndicator
+              size="small"
+              color="#8B7355"
+              style={{ marginLeft: 8 }}
+            />
+          ) : undefined,
+        },
       ],
     },
   ];
@@ -175,7 +213,7 @@ export default function Settings() {
                     key={itemIndex}
                     style={styles.settingItem}
                     onPress={item.onPress}
-                    disabled={!item.onPress}
+                    disabled={!item.onPress || isPresentingPaywall}
                   >
                     <View style={styles.settingIcon}>
                       <Ionicons

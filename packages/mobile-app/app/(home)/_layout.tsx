@@ -1,9 +1,22 @@
 import { Stack } from "expo-router/stack";
 import { useGetLoggedInUser } from "@/api/users";
+import { useEffect } from "react";
+import Purchases from "react-native-purchases";
+import { Platform } from "react-native";
 
 export default function HomeLayout() {
-  // Prefetch user data to ensure dietary restrictions are available
-  useGetLoggedInUser();
+  const { data: user } = useGetLoggedInUser();
+
+  useEffect(() => {
+    if (user) {
+      if (Platform.OS === "ios") {
+        Purchases.configure({
+          apiKey: "",
+          appUserID: user.id,
+        });
+      }
+    }
+  }, [user]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

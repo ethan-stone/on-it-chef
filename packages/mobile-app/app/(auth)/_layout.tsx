@@ -5,7 +5,7 @@ export default function AuthRoutesLayout() {
   const { isSignedIn } = useAuth();
 
   if (isSignedIn) {
-    return <Redirect href={"/(auth)/recipes"} />;
+    return <Redirect href={"/(home)/(tabs)/recipes"} />;
   }
 
   return (
