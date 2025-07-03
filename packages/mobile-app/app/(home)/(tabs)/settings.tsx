@@ -20,7 +20,7 @@ import Purchases from "react-native-purchases";
 import PurchasesPaywall from "react-native-purchases-ui";
 
 type SettingItem = {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
   action: "chevron-forward" | "none" | "edit";
