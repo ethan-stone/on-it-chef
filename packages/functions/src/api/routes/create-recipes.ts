@@ -102,7 +102,6 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     const recipe = await root.services.recipesService.createRecipe({
       dietaryRestrictions: finalDietaryRestrictions,
       visibility: visibility,
-      includeDietaryRestrictions: includeDietaryRestrictions,
       initialRecipeVersion: {
         userId: user.id,
         generatedName: aiRecipe.generatedName,
@@ -113,11 +112,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         servings: aiRecipe.servings,
         ingredients: aiRecipe.ingredients,
         instructions: aiRecipe.instructions,
-        createdAt: new Date(),
-      },
-      initialRecipePrompt: {
-        userId: user.id,
-        message,
+        message: message,
         createdAt: new Date(),
       },
     });

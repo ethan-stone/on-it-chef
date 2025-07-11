@@ -213,19 +213,13 @@ Generate a recipe based on the user's request. Respond with ONLY the JSON object
 export async function generateRecipeVersion(
   userPrompt: string,
   previousVersions: RecipeVersion[],
-  previousPrompts: RecipePrompt[],
   dietaryRestrictions?: string | null
 ): Promise<AIRecipeResponse> {
   // Build context from previous versions
   const versionContext = previousVersions
-    .map((version, index) => {
-      const prompt = previousPrompts.find(
-        (p) => p.generatedVersion === version.id
-      );
+    .map((version) => {
       return `
-Version ${version.version} (${
-        prompt ? `Prompt: "${prompt.message}"` : "No prompt available"
-      }):
+Version ${version.version} (${version.message}):
 - Name: ${version.generatedName}
 - Description: ${version.description}
 - Prep Time: ${version.prepTime} minutes

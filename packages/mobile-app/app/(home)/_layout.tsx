@@ -11,7 +11,7 @@ export default function HomeLayout() {
     if (user) {
       if (Platform.OS === "ios") {
         Purchases.configure({
-          apiKey: "",
+          apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
           appUserID: user.id,
         });
       }

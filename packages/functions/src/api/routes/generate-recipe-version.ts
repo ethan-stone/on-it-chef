@@ -103,19 +103,11 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       });
     }
 
-    // Get previous prompts for context
-    const previousPrompts = await root.services.recipesService.getRecipePrompts(
-      recipeId
-    );
-
     // Call the AI to generate the new recipe version
     const aiRecipe = await generateRecipeVersion(
       message,
       currentRecipe.recentVersions,
-      previousPrompts,
-      currentRecipe.includeDietaryRestrictions
-        ? user.dietaryRestrictions || undefined
-        : undefined
+      currentRecipe.dietaryRestrictions || undefined
     );
 
     // Create the new recipe version
@@ -131,11 +123,10 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
           servings: aiRecipe.servings,
           ingredients: aiRecipe.ingredients,
           instructions: aiRecipe.instructions,
+          message: message,
         },
         message,
-        currentRecipe.includeDietaryRestrictions
-          ? user.dietaryRestrictions || undefined
-          : undefined
+        currentRecipe.dietaryRestrictions || undefined
       );
 
     logger.info(

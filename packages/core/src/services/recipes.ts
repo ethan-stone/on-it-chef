@@ -42,6 +42,7 @@ const RecipeVersion = z.object({
   servings: z.number(),
   ingredients: z.array(Ingredient),
   instructions: z.array(z.string()),
+  message: z.string(),
   createdAt: z.date(),
 });
 
@@ -82,7 +83,6 @@ const Recipe = z.object({
   userId: z.string(),
   visibility: z.enum(["public", "private"]),
   dietaryRestrictions: z.string().nullish(),
-  includeDietaryRestrictions: z.boolean().default(true),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -95,7 +95,6 @@ const MongoRecipe = Recipe.omit({
 }).extend({
   _id: z.string(),
   recentVersions: z.array(MongoRecipeVersion),
-  includeDietaryRestrictions: z.boolean().default(true),
 });
 
 export type MongoRecipe = z.infer<typeof MongoRecipe>;
@@ -178,7 +177,6 @@ export class RecipeService {
   private dbName = "onItChef";
   private recipesColl: Collection<MongoRecipe>;
   private recipeVersionsColl: Collection<MongoRecipeVersion>;
-  private recipePromptsColl: Collection<MongoRecipePrompt>;
   private sharedRecipesColl: Collection<MongoSharedRecipe>;
 
   constructor(private readonly client: MongoClient) {
@@ -188,9 +186,6 @@ export class RecipeService {
     this.recipeVersionsColl = this.client
       .db(this.dbName)
       .collection<MongoRecipeVersion>("recipeVersions");
-    this.recipePromptsColl = this.client
-      .db(this.dbName)
-      .collection<MongoRecipePrompt>("recipePrompts");
     this.sharedRecipesColl = this.client
       .db(this.dbName)
       .collection<MongoSharedRecipe>("sharedRecipes");
@@ -205,12 +200,7 @@ export class RecipeService {
   async createRecipe(recipe: {
     dietaryRestrictions: Recipe["dietaryRestrictions"];
     visibility: Recipe["visibility"];
-    includeDietaryRestrictions: boolean;
     initialRecipeVersion: Omit<RecipeVersion, "id" | "recipeId">;
-    initialRecipePrompt: Omit<
-      RecipePrompt,
-      "id" | "recipeId" | "generatedVersion"
-    >;
   }): Promise<Recipe> {
     const startTime = Date.now();
     const recipeId = this.uid("recipe");
@@ -230,15 +220,7 @@ export class RecipeService {
       ingredients: recipe.initialRecipeVersion.ingredients,
       instructions: recipe.initialRecipeVersion.instructions,
       version: recipe.initialRecipeVersion.version,
-      createdAt: now,
-    };
-
-    const mongoRecipePrompt: MongoRecipePrompt = {
-      _id: this.uid("recipe_prompt"),
-      recipeId,
-      userId: recipe.initialRecipeVersion.userId,
-      message: recipe.initialRecipePrompt.message,
-      generatedVersion: mongoRecipeVersion._id,
+      message: recipe.initialRecipeVersion.message,
       createdAt: now,
     };
 
@@ -248,7 +230,6 @@ export class RecipeService {
       generatedName: recipe.initialRecipeVersion.generatedName,
       visibility: recipe.visibility,
       dietaryRestrictions: recipe.dietaryRestrictions,
-      includeDietaryRestrictions: recipe.includeDietaryRestrictions,
       recentVersions: [mongoRecipeVersion],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -259,7 +240,6 @@ export class RecipeService {
       await session.withTransaction(async () => {
         await this.recipesColl.insertOne(mongoRecipe);
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
-        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
       });
 
       const duration = Date.now() - startTime;
@@ -342,6 +322,7 @@ export class RecipeService {
       ingredients: newRecipeVersion.ingredients,
       instructions: newRecipeVersion.instructions,
       version: nextVersion,
+      message,
       createdAt: now,
     };
 
@@ -359,9 +340,6 @@ export class RecipeService {
       await session.withTransaction(async () => {
         // Insert the new recipe version
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
-
-        // Insert the new recipe prompt
-        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
 
         // Update the recipe with the new version
         await this.recipesColl.updateOne(
@@ -389,18 +367,6 @@ export class RecipeService {
     } finally {
       await session.endSession();
     }
-  }
-
-  async getRecipePrompts(recipeId: string): Promise<RecipePrompt[]> {
-    const startTime = Date.now();
-    const mongoPrompts = await this.recipePromptsColl
-      .find({ recipeId })
-      .sort({ createdAt: 1 }) // Sort by creation date ascending
-      .toArray();
-    const duration = Date.now() - startTime;
-    console.log(`[DB] getRecipePrompts: ${duration}ms`);
-
-    return mongoPrompts.map(fromMongo.recipePrompt);
   }
 
   async listRecipeVersions(
@@ -439,9 +405,6 @@ export class RecipeService {
 
         // Delete all recipe versions
         await this.recipeVersionsColl.deleteMany({ recipeId });
-
-        // Delete all recipe prompts
-        await this.recipePromptsColl.deleteMany({ recipeId });
       });
       const duration = Date.now() - startTime;
       console.log(`[DB] deleteRecipe: ${duration}ms`);
@@ -469,8 +432,7 @@ export class RecipeService {
     },
     userGivenName?: string,
     visibility: "public" | "private" = "private",
-    dietaryRestrictions?: string,
-    includeDietaryRestrictions: boolean = true
+    dietaryRestrictions?: string
   ): Promise<Recipe> {
     const startTime = Date.now();
     // Get the source recipe and version
@@ -503,6 +465,7 @@ export class RecipeService {
       ingredients: forkedRecipeData.ingredients,
       instructions: forkedRecipeData.instructions,
       version: 1, // This is version 1 of the new recipe
+      message: userPrompt,
       createdAt: now,
     };
 
@@ -524,7 +487,6 @@ export class RecipeService {
       generatedName: forkedRecipeData.generatedName,
       visibility,
       dietaryRestrictions,
-      includeDietaryRestrictions,
       recentVersions: [mongoRecipeVersion],
       createdAt: now,
       updatedAt: now,
@@ -535,7 +497,6 @@ export class RecipeService {
       await session.withTransaction(async () => {
         await this.recipesColl.insertOne(mongoRecipe);
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
-        await this.recipePromptsColl.insertOne(mongoRecipePrompt);
       });
 
       const duration = Date.now() - startTime;

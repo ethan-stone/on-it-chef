@@ -42,20 +42,11 @@ const route = createRoute({
                     })
                   ),
                   instructions: z.array(z.string()),
+                  message: z.string(),
                   createdAt: z.string().datetime(),
                 })
               ),
             }),
-            prompts: z.array(
-              z.object({
-                id: z.string(),
-                recipeId: z.string(),
-                userId: z.string(),
-                message: z.string(),
-                generatedVersion: z.string().nullish(),
-                createdAt: z.string().datetime(),
-              })
-            ),
             isOwner: z.boolean(),
             isShared: z.boolean(),
           }),
@@ -111,13 +102,12 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     }
 
     // Fetch both versions and prompts in parallel
-    const [versionsResult, prompts] = await Promise.all([
+    const [versionsResult] = await Promise.all([
       root.services.recipesService.listRecipeVersions(
         recipeId,
         parseInt(page),
         parseInt(limit)
       ),
-      root.services.recipesService.getRecipePrompts(recipeId),
     ]);
 
     logger.info(`Retrieved recipe details for recipe ${recipeId}`);
@@ -125,7 +115,6 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     return c.json(
       {
         versions: versionsResult,
-        prompts: prompts,
         isOwner,
         isShared,
       },

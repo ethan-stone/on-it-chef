@@ -135,9 +135,9 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     }
 
     // Use user's dietary restrictions if includeDietaryRestrictions is true
-    const finalDietaryRestrictions = includeDietaryRestrictions
-      ? user.dietaryRestrictions || undefined
-      : undefined;
+    const finalDietaryRestrictions =
+      customDietaryRestrictions ||
+      (includeDietaryRestrictions ? user.dietaryRestrictions : undefined);
 
     // Generate the forked recipe using AI
     const aiRecipe = await generateForkedRecipe(
@@ -162,8 +162,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       },
       userGivenName,
       visibility,
-      finalDietaryRestrictions,
-      includeDietaryRestrictions
+      finalDietaryRestrictions || undefined
     );
 
     logger.info(

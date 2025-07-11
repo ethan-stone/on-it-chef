@@ -47,6 +47,7 @@ const route = createRoute({
                   })
                 ),
                 instructions: z.array(z.string()),
+                message: z.string(),
                 createdAt: z.string().datetime(),
               })
             ),

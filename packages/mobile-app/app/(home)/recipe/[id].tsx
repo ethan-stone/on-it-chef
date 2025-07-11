@@ -69,12 +69,6 @@ export default function RecipeDetail() {
     [versionsData?.pages]
   );
 
-  // Get prompts from the first page (they don't change with pagination)
-  const allPrompts = useMemo(
-    () => versionsData?.pages[0]?.prompts || [],
-    [versionsData?.pages]
-  );
-
   // Set the most recent version as default when data loads
   useEffect(() => {
     if (allVersions.length > 0) {
@@ -82,11 +76,6 @@ export default function RecipeDetail() {
       setSelectedVersion(allVersions[0]);
     }
   }, [allVersions]);
-
-  // Find the prompt for the selected version
-  const selectedPrompt = allPrompts.find(
-    (prompt) => prompt.generatedVersion === selectedVersion?.id
-  );
 
   // Auto-focus the text input when modal opens
   useEffect(() => {
@@ -573,7 +562,7 @@ ${version.instructions
             </View>
 
             {/* Original Prompt */}
-            {selectedPrompt && (
+            {selectedVersion && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Ionicons
@@ -587,7 +576,7 @@ ${version.instructions
                 </View>
                 <View style={styles.promptCard}>
                   <ThemedText style={styles.promptText}>
-                    &ldquo;{selectedPrompt.message}&rdquo;
+                    &ldquo;{selectedVersion.message}&rdquo;
                   </ThemedText>
                 </View>
               </View>
