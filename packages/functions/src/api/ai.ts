@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Resource } from "sst";
 import { z } from "zod";
-import { RecipeVersion, RecipePrompt } from "@on-it-chef/core/services/recipes";
+import { RecipeVersion } from "@on-it-chef/core/services/recipes";
 
 const ai = new GoogleGenAI({ apiKey: Resource.GeminiApiKey.value });
 

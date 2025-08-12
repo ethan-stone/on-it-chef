@@ -18,7 +18,6 @@ import { CreateRecipe } from "./routes/create-recipes";
 import { GenerateRecipeVersion } from "./routes/generate-recipe-version";
 import { ListRecipeVersions } from "./routes/list-recipe-versions";
 import { DeleteRecipe } from "./routes/delete-recipe";
-import { ListRecipePrompts } from "./routes/list-recipe-prompts";
 import { ForkRecipe } from "./routes/fork-recipe";
 import { GetRecipeDetails } from "./routes/get-recipe-details";
 import { SearchRecipes } from "./routes/search-recipe";
@@ -197,7 +196,6 @@ const routes = app
   .openapi(GenerateRecipeVersion.route, GenerateRecipeVersion.handler)
   .openapi(ListRecipeVersions.route, ListRecipeVersions.handler)
   .openapi(DeleteRecipe.route, DeleteRecipe.handler)
-  .openapi(ListRecipePrompts.route, ListRecipePrompts.handler)
   .openapi(UpdateUserSettings.route, UpdateUserSettings.handler)
   .openapi(ForkRecipe.route, ForkRecipe.handler)
   .openapi(GetRecipeDetails.route, GetRecipeDetails.handler)

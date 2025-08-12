@@ -56,25 +56,6 @@ const MongoRecipeVersion = RecipeVersion.omit({
 
 export type MongoRecipeVersion = z.infer<typeof MongoRecipeVersion>;
 
-const RecipePrompt = z.object({
-  id: z.string(),
-  recipeId: z.string(),
-  userId: z.string(),
-  message: z.string(), // The message that the user provided to generate the recipe version.
-  generatedVersion: z.string(), // The ID of the generated recipe version from this prompt.
-  createdAt: z.date(),
-});
-
-export type RecipePrompt = z.infer<typeof RecipePrompt>;
-
-const MongoRecipePrompt = RecipePrompt.omit({
-  id: true,
-}).extend({
-  _id: z.string(),
-});
-
-export type MongoRecipePrompt = z.infer<typeof MongoRecipePrompt>;
-
 const Recipe = z.object({
   id: z.string(),
   userGivenName: z.string().nullish(), // A user specified name for the recipe.
@@ -131,12 +112,6 @@ const toMongo = {
       _id: recipeVersion.id,
     });
   },
-  recipePrompt: (recipePrompt: RecipePrompt): MongoRecipePrompt => {
-    return MongoRecipePrompt.parse({
-      ...recipePrompt,
-      _id: recipePrompt.id,
-    });
-  },
   sharedRecipe: (sharedRecipe: SharedRecipe): MongoSharedRecipe => {
     return MongoSharedRecipe.parse({
       ...sharedRecipe,
@@ -157,12 +132,6 @@ const fromMongo = {
     return RecipeVersion.parse({
       ...mongoRecipeVersion,
       id: mongoRecipeVersion._id,
-    });
-  },
-  recipePrompt: (mongoRecipePrompt: MongoRecipePrompt): RecipePrompt => {
-    return RecipePrompt.parse({
-      ...mongoRecipePrompt,
-      id: mongoRecipePrompt._id,
     });
   },
   sharedRecipe: (mongoSharedRecipe: MongoSharedRecipe): SharedRecipe => {
@@ -326,15 +295,6 @@ export class RecipeService {
       createdAt: now,
     };
 
-    const mongoRecipePrompt: MongoRecipePrompt = {
-      _id: this.uid("recipe_prompt"),
-      recipeId,
-      userId,
-      message,
-      generatedVersion: mongoRecipeVersion._id,
-      createdAt: now,
-    };
-
     const session = this.client.startSession();
     try {
       await session.withTransaction(async () => {
@@ -466,16 +426,6 @@ export class RecipeService {
       instructions: forkedRecipeData.instructions,
       version: 1, // This is version 1 of the new recipe
       message: userPrompt,
-      createdAt: now,
-    };
-
-    // Create a prompt indicating this was forked from another recipe
-    const mongoRecipePrompt: MongoRecipePrompt = {
-      _id: this.uid("recipe_prompt"),
-      recipeId,
-      userId,
-      message: `Forked from "${sourceRecipe.generatedName}" (version ${sourceVersion.version}) with adaptation: ${userPrompt}`,
-      generatedVersion: mongoRecipeVersion._id,
       createdAt: now,
     };
 
