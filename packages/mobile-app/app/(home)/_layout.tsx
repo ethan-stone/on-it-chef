@@ -1,22 +1,25 @@
 import { Stack } from "expo-router/stack";
 import { useGetLoggedInUser } from "@/api/users";
-// import { useEffect } from "react";
-// import Purchases from "react-native-purchases";
-// import { Platform } from "react-native";
+import { useGetAllActiveRemoteConfigs } from "@/api/remote-configs";
+import { useEffect } from "react";
+import Purchases from "react-native-purchases";
+import { Platform } from "react-native";
 
 export default function HomeLayout() {
-  useGetLoggedInUser();
+  const { data: user } = useGetLoggedInUser();
 
-  // useEffect(() => {
-  //   if (user) {
-  //     if (Platform.OS === "ios") {
-  //       Purchases.configure({
-  //         apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
-  //         appUserID: user.id,
-  //       });
-  //     }
-  //   }
-  // }, [user]);
+  const { data: remoteConfigs } = useGetAllActiveRemoteConfigs();
+
+  useEffect(() => {
+    if (user && remoteConfigs?.get("purchasesEnabled")?.value.enabled) {
+      if (Platform.OS === "ios") {
+        Purchases.configure({
+          apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
+          appUserID: user.id,
+        });
+      }
+    }
+  }, [user, remoteConfigs]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

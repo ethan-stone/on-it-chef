@@ -24,6 +24,7 @@ import { GetRecipeDetails } from "./routes/get-recipe-details";
 import { SearchRecipes } from "./routes/search-recipe";
 import { ShareRecipe } from "./routes/share-recipe";
 import { ListSharedRecipes } from "./routes/list-shared-recipes";
+import { GetAllActiveRemoteConfigs } from "./routes/get-all-active-remote-configs";
 import { CreateRemoteConfig } from "./routes/admin/create-remote-config";
 
 const app = new OpenAPIHono<HonoEnv>({
@@ -203,6 +204,7 @@ const routes = app
   .openapi(SearchRecipes.route, SearchRecipes.handler)
   .openapi(ShareRecipe.route, ShareRecipe.handler)
   .openapi(ListSharedRecipes.route, ListSharedRecipes.handler)
+  .openapi(GetAllActiveRemoteConfigs.route, GetAllActiveRemoteConfigs.handler)
   .openapi(CreateRemoteConfig.route, CreateRemoteConfig.handler);
 
 export type Routes = typeof routes;
