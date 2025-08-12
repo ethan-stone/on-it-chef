@@ -1,6 +1,6 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
-import { errorResponseSchemas, HTTPException } from "../errors";
-import { HonoEnv } from "../app";
+import { errorResponseSchemas, HTTPException } from "../../errors";
+import { HonoEnv } from "../../app";
 import { WebhookEvent } from "@clerk/backend/webhooks";
 import { Webhook } from "svix";
 

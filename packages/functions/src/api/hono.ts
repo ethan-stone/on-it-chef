@@ -3,7 +3,7 @@ import { handleError } from "./errors";
 import { handleZodError } from "./errors";
 import { prettyJSON } from "hono/pretty-json";
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { ClerkWebhook } from "./routes/clerk-webhook";
+import { ClerkWebhook } from "./routes/clerk/clerk-webhook";
 import { handle } from "hono/aws-lambda";
 import { uid } from "./uid";
 import { envSchema } from "./env";
@@ -24,6 +24,7 @@ import { GetRecipeDetails } from "./routes/get-recipe-details";
 import { SearchRecipes } from "./routes/search-recipe";
 import { ShareRecipe } from "./routes/share-recipe";
 import { ListSharedRecipes } from "./routes/list-shared-recipes";
+import { CreateRemoteConfig } from "./routes/admin/create-remote-config";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -201,7 +202,8 @@ const routes = app
   .openapi(GetRecipeDetails.route, GetRecipeDetails.handler)
   .openapi(SearchRecipes.route, SearchRecipes.handler)
   .openapi(ShareRecipe.route, ShareRecipe.handler)
-  .openapi(ListSharedRecipes.route, ListSharedRecipes.handler);
+  .openapi(ListSharedRecipes.route, ListSharedRecipes.handler)
+  .openapi(CreateRemoteConfig.route, CreateRemoteConfig.handler);
 
 export type Routes = typeof routes;
 

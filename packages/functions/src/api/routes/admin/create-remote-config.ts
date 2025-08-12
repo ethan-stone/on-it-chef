@@ -93,3 +93,8 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   return c.json(remoteConfig, 200);
 };
+
+export const CreateRemoteConfig = {
+  route,
+  handler,
+};
