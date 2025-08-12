@@ -164,6 +164,29 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+const REMOTE_CONFIGS_CACHE_TTL = 1000 * 60; // 1 minute
+let LAST_REMOTE_CONFIGS_CACHE_UPDATE = 0;
+
+app.use("*", async (c, next) => {
+  const root = c.get("root");
+
+  // Initialize empty map so we don't have to check if it's null even if we don't have any remote configs
+  c.set("remoteConfigs", new Map());
+
+  const now = Date.now();
+
+  if (now - LAST_REMOTE_CONFIGS_CACHE_UPDATE > REMOTE_CONFIGS_CACHE_TTL) {
+    const remoteConfigs =
+      await root.services.remoteConfigService.getAllActiveRemoteConfigs();
+
+    c.set("remoteConfigs", new Map(remoteConfigs.map((rc) => [rc.name, rc])));
+
+    LAST_REMOTE_CONFIGS_CACHE_UPDATE = now;
+  }
+
+  await next();
+});
+
 const routes = app
   .openapi(ClerkWebhook.route, ClerkWebhook.handler)
   .openapi(GetLoggedInUser.route, GetLoggedInUser.handler)

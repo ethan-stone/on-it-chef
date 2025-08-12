@@ -3,7 +3,10 @@ import { ILogger } from "./logger";
 import { User, UserService } from "@on-it-chef/core/services/users";
 import { ContextVariableMap } from "hono";
 import { RecipeService } from "@on-it-chef/core/services/recipes";
-import { RemoteConfigService } from "@on-it-chef/core/services/remote-configs";
+import {
+  RemoteConfig,
+  RemoteConfigService,
+} from "@on-it-chef/core/services/remote-configs";
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
 
 export type Root = {
@@ -34,5 +37,6 @@ export type HonoEnv = {
       name: string;
       status: "active" | "inactive";
     } | null;
+    remoteConfigs: Map<string, RemoteConfig>;
   } & ContextVariableMap;
 };
