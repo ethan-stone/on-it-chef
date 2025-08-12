@@ -1,6 +1,7 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { errorResponseSchemas, HTTPException } from "../../errors";
 import { HonoEnv } from "../../app";
+import { checkRateLimit } from "../../rate-limit";
 
 const route = createRoute({
   operationId: "createRemoteConfig",
@@ -58,6 +59,11 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   logger.info(
     `Received request to create remote config by admin api key ${adminApiKey.id}`
   );
+
+  await checkRateLimit(c, root.services.rateLimiter, {
+    entityId: adminApiKey.id,
+    maxRequests: 100,
+  });
 
   const { name, value, status, description } = c.req.valid("json");
 

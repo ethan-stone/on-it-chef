@@ -5,12 +5,14 @@ import { Resource } from "sst";
 import { RecipeService } from "@on-it-chef/core/services/recipes";
 import { RemoteConfigService } from "@on-it-chef/core/services/remote-configs";
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
+import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
 
 let mongoClient: MongoClient | null = null;
 let userService: UserService | null = null;
 let recipesService: RecipeService | null = null;
 let remoteConfigService: RemoteConfigService | null = null;
 let adminApiKeyService: AdminApiKeyService | null = null;
+let rateLimiter: RateLimiter | null = null;
 
 export async function init(): Promise<Root> {
   if (!mongoClient) {
@@ -34,6 +36,10 @@ export async function init(): Promise<Root> {
     adminApiKeyService = new AdminApiKeyService(mongoClient);
   }
 
+  if (!rateLimiter) {
+    rateLimiter = new RateLimiter(mongoClient);
+  }
+
   return {
     env: "development",
     secrets: {
@@ -44,6 +50,7 @@ export async function init(): Promise<Root> {
       recipesService,
       remoteConfigService,
       adminApiKeyService,
+      rateLimiter,
     },
   };
 }

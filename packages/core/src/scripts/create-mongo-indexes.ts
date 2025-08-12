@@ -8,6 +8,7 @@ import {
 import { MongoUser } from "../services/users";
 import { MongoRemoteConfig } from "../services/remote-configs";
 import { MongoAdminApiKey } from "../services/admin-api-keys";
+import { MongoRateLimitWindow } from "../services/rate-limiter";
 
 const mongoUrl = Resource.MongoUrl.value;
 
@@ -21,6 +22,8 @@ async function createIndexes() {
   const remoteConfigs = db.collection<MongoRemoteConfig>("remoteConfigs");
   const users = db.collection<MongoUser>("users");
   const adminApiKeys = db.collection<MongoAdminApiKey>("adminApiKeys");
+  const rateLimitWindows =
+    db.collection<MongoRateLimitWindow>("rateLimitWindows");
 
   await users.createIndex(
     {
@@ -101,6 +104,17 @@ async function createIndexes() {
   await adminApiKeys.createIndex(
     {
       key: 1,
+    },
+    {
+      unique: true,
+    }
+  );
+
+  await rateLimitWindows.createIndex(
+    {
+      entityId: 1,
+      windowStart: 1,
+      windowEnd: 1,
     },
     {
       unique: true,
