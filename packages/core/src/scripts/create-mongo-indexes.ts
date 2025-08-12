@@ -2,11 +2,12 @@ import { MongoClient } from "mongodb";
 import { Resource } from "sst";
 import {
   MongoRecipe,
-  MongoRecipePrompt,
   MongoRecipeVersion,
   MongoSharedRecipe,
 } from "../services/recipes";
 import { MongoUser } from "../services/users";
+import { MongoRemoteConfig } from "../services/remote-configs";
+import { MongoAdminApiKey } from "../services/admin-api-keys";
 
 const mongoUrl = Resource.MongoUrl.value;
 
@@ -16,9 +17,10 @@ async function createIndexes() {
   const db = client.db("onItChef");
   const recipes = db.collection<MongoRecipe>("recipes");
   const recipeVersions = db.collection<MongoRecipeVersion>("recipeVersions");
-  const recipePrompts = db.collection<MongoRecipePrompt>("recipePrompts");
   const sharedRecipes = db.collection<MongoSharedRecipe>("sharedRecipes");
+  const remoteConfigs = db.collection<MongoRemoteConfig>("remoteConfigs");
   const users = db.collection<MongoUser>("users");
+  const adminApiKeys = db.collection<MongoAdminApiKey>("adminApiKeys");
 
   await users.createIndex(
     {
@@ -34,10 +36,6 @@ async function createIndexes() {
   });
 
   await recipeVersions.createIndex({
-    recipeId: 1,
-  });
-
-  await recipePrompts.createIndex({
     recipeId: 1,
   });
 
@@ -90,6 +88,24 @@ async function createIndexes() {
     sharedWith: 1,
     recipeId: 1,
   });
+
+  await remoteConfigs.createIndex(
+    {
+      name: 1,
+    },
+    {
+      unique: true,
+    }
+  );
+
+  await adminApiKeys.createIndex(
+    {
+      key: 1,
+    },
+    {
+      unique: true,
+    }
+  );
 
   await client.close();
 }

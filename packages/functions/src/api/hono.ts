@@ -141,6 +141,29 @@ app.use("*", async (c, next) => {
   await next();
 });
 
+app.use("*", async (c, next) => {
+  const root = c.get("root");
+  const adminApiKey = c.req.header("x-on-it-chef-admin-api-key");
+
+  if (adminApiKey) {
+    const adminApiKeyDoc =
+      await root.services.adminApiKeyService.getAdminApiKey(adminApiKey);
+
+    c.set(
+      "adminApiKey",
+      adminApiKeyDoc
+        ? {
+            id: adminApiKeyDoc.id,
+            name: adminApiKeyDoc.name,
+            status: adminApiKeyDoc.status,
+          }
+        : null
+    );
+  }
+
+  await next();
+});
+
 const routes = app
   .openapi(ClerkWebhook.route, ClerkWebhook.handler)
   .openapi(GetLoggedInUser.route, GetLoggedInUser.handler)
