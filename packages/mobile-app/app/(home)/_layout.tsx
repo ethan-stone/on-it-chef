@@ -1,22 +1,22 @@
 import { Stack } from "expo-router/stack";
 import { useGetLoggedInUser } from "@/api/users";
-import { useEffect } from "react";
-import Purchases from "react-native-purchases";
-import { Platform } from "react-native";
+// import { useEffect } from "react";
+// import Purchases from "react-native-purchases";
+// import { Platform } from "react-native";
 
 export default function HomeLayout() {
-  const { data: user } = useGetLoggedInUser();
+  useGetLoggedInUser();
 
-  useEffect(() => {
-    if (user) {
-      if (Platform.OS === "ios") {
-        Purchases.configure({
-          apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
-          appUserID: user.id,
-        });
-      }
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (user) {
+  //     if (Platform.OS === "ios") {
+  //       Purchases.configure({
+  //         apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
+  //         appUserID: user.id,
+  //       });
+  //     }
+  //   }
+  // }, [user]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
