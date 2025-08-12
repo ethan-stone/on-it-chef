@@ -170,11 +170,11 @@ let LAST_REMOTE_CONFIGS_CACHE_UPDATE = 0;
 app.use("*", async (c, next) => {
   const root = c.get("root");
 
-  // Initialize empty map so we don't have to check if it's null even if we don't have any remote configs
-  c.set("remoteConfigs", new Map());
-
   const now = Date.now();
 
+  // If the cache is stale, update it
+  // Since we initialize the LAST_REMOTE_CONFIGS_CACHE_UPDATE to 0, it will always be stale on first request
+  // and we at least have an empty map.
   if (now - LAST_REMOTE_CONFIGS_CACHE_UPDATE > REMOTE_CONFIGS_CACHE_TTL) {
     const remoteConfigs =
       await root.services.remoteConfigService.getAllActiveRemoteConfigs();
