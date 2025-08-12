@@ -207,8 +207,12 @@ export class RecipeService {
     const session = this.client.startSession();
     try {
       await session.withTransaction(async () => {
-        await this.recipesColl.insertOne(mongoRecipe);
-        await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+        await this.recipesColl.insertOne(mongoRecipe, {
+          session,
+        });
+        await this.recipeVersionsColl.insertOne(mongoRecipeVersion, {
+          session,
+        });
       });
 
       const duration = Date.now() - startTime;
@@ -299,7 +303,9 @@ export class RecipeService {
     try {
       await session.withTransaction(async () => {
         // Insert the new recipe version
-        await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+        await this.recipeVersionsColl.insertOne(mongoRecipeVersion, {
+          session,
+        });
 
         // Update the recipe with the new version
         await this.recipesColl.updateOne(
@@ -312,6 +318,9 @@ export class RecipeService {
               },
             },
             $set: { updatedAt: now },
+          },
+          {
+            session,
           }
         );
       });
@@ -361,10 +370,10 @@ export class RecipeService {
     try {
       await session.withTransaction(async () => {
         // Delete the recipe
-        await this.recipesColl.deleteOne({ _id: recipeId });
+        await this.recipesColl.deleteOne({ _id: recipeId }, { session });
 
         // Delete all recipe versions
-        await this.recipeVersionsColl.deleteMany({ recipeId });
+        await this.recipeVersionsColl.deleteMany({ recipeId }, { session });
       });
       const duration = Date.now() - startTime;
       console.log(`[DB] deleteRecipe: ${duration}ms`);
@@ -445,8 +454,12 @@ export class RecipeService {
     const session = this.client.startSession();
     try {
       await session.withTransaction(async () => {
-        await this.recipesColl.insertOne(mongoRecipe);
-        await this.recipeVersionsColl.insertOne(mongoRecipeVersion);
+        await this.recipesColl.insertOne(mongoRecipe, {
+          session,
+        });
+        await this.recipeVersionsColl.insertOne(mongoRecipeVersion, {
+          session,
+        });
       });
 
       const duration = Date.now() - startTime;
@@ -529,7 +542,9 @@ export class RecipeService {
     const session = this.client.startSession();
     try {
       await session.withTransaction(async () => {
-        await this.sharedRecipesColl.insertOne(mongoSharedRecipe);
+        await this.sharedRecipesColl.insertOne(mongoSharedRecipe, {
+          session,
+        });
       });
     } catch (error) {
       console.error(error);
