@@ -1,6 +1,7 @@
 import { Collection, MongoClient } from "mongodb";
 import { ulid } from "ulid";
 import { z } from "zod";
+import { Events } from "./events";
 
 const Ingredient = z
   .object({
@@ -147,6 +148,7 @@ export class RecipeService {
   private recipesColl: Collection<MongoRecipe>;
   private recipeVersionsColl: Collection<MongoRecipeVersion>;
   private sharedRecipesColl: Collection<MongoSharedRecipe>;
+  private eventsColl: Collection<Events>;
 
   constructor(private readonly client: MongoClient) {
     this.recipesColl = this.client
@@ -158,10 +160,11 @@ export class RecipeService {
     this.sharedRecipesColl = this.client
       .db(this.dbName)
       .collection<MongoSharedRecipe>("sharedRecipes");
+    this.eventsColl = this.client.db(this.dbName).collection<Events>("events");
   }
 
   private uid(
-    prefix: "recipe" | "recipe_ver" | "recipe_prompt" | "shared_recipe"
+    prefix: "recipe" | "recipe_ver" | "recipe_prompt" | "shared_recipe" | "evt"
   ) {
     return `${prefix}_${ulid()}`;
   }
@@ -212,6 +215,17 @@ export class RecipeService {
         });
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion, {
           session,
+        });
+        await this.eventsColl.insertOne({
+          _id: this.uid("evt"),
+          timestamp: now,
+          type: "recipe_version.created",
+          key: recipe.initialRecipeVersion.userId,
+          payload: {
+            recipeVersionId,
+            recipeId,
+            userId: recipe.initialRecipeVersion.userId,
+          },
         });
       });
 
@@ -269,8 +283,7 @@ export class RecipeService {
       RecipeVersion,
       "id" | "recipeId" | "userId" | "version" | "createdAt"
     >,
-    message: string,
-    dietaryRestrictions?: string
+    message: string
   ): Promise<Recipe> {
     const startTime = Date.now();
     // Get the current recipe to determine the next version number
@@ -323,6 +336,18 @@ export class RecipeService {
             session,
           }
         );
+
+        await this.eventsColl.insertOne({
+          _id: this.uid("evt"),
+          timestamp: now,
+          type: "recipe_version.created",
+          key: userId,
+          payload: {
+            recipeVersionId,
+            recipeId,
+            userId,
+          },
+        });
       });
 
       // Return the updated recipe
@@ -459,6 +484,17 @@ export class RecipeService {
         });
         await this.recipeVersionsColl.insertOne(mongoRecipeVersion, {
           session,
+        });
+        await this.eventsColl.insertOne({
+          _id: this.uid("evt"),
+          timestamp: now,
+          type: "recipe_version.created",
+          key: userId,
+          payload: {
+            recipeVersionId,
+            recipeId,
+            userId,
+          },
         });
       });
 

@@ -1,50 +1,55 @@
-# Use Bun as base image
-FROM oven/bun:1 AS base
+# packages/changeStream/Dockerfile
 
-# Install dependencies only when needed
-FROM base AS deps
+# Stage 1: Build & Prepare (using Bun as the unified runtime)
+# We'll use this single stage for both building and running
+FROM oven/bun:1.1.17 AS builder_and_runtime
+
+# Set working directory inside the container to the monorepo root (conceptually)
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
-COPY ../../packages/core/package.json ./packages/core/
-COPY ../../packages/changeStream/package.json ./packages/changeStream/
+# --- Bun Dependency Installation ---
+# Copy the essential monorepo files first for caching
+COPY ../../package.json ./package.json
+COPY ../../bun.lock ./bun.lock
+COPY ../../tsconfig.json ./tsconfig.json
 
-# Install dependencies
+# Copy all package.json files from the 'packages' directory
+# This ensures Bun correctly identifies and links all workspace packages
+RUN mkdir -p packages
+COPY ../../packages/*/package.json ./packages/
+
+# Install all dependencies for the monorepo using Bun
+# This will install both dev and prod dependencies. For a production image,
+# Bun's default behavior is often acceptable as it's very efficient.
+# If you absolutely need to prune for size, Bun has `bun install --production`
+# or `bun install --frozen-lockfile --production` but often not strictly needed here.
 RUN bun install
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy all source code (this ensures all workspace sources are available for bundling)
+# This includes packages/core and packages/changeStream
+COPY ../../packages ./packages
 
-# Build the application
-RUN npm run build
+# --- Build the 'changeStream' package ---
+# Run bun build from the /app (monorepo root) context.
+# The 'build' script in packages/changeStream/package.json is:
+# "bun build ./src/index.ts --outdir dist --target node"
+# `bun run --cwd` will execute this from the changeStream package's perspective.
+RUN bun install --cwd packages/changeStream
+RUN bun run --cwd packages/changeStream build
 
-# Production image, copy all the files and run the app
-FROM base AS runner
-WORKDIR /app
+# --- Final Production Setup ---
+# The previous steps have created the necessary /app/packages/changeStream/dist output.
+# Bun will be used to run the compiled JavaScript.
 
-ENV NODE_ENV production
-
-# Create a non-root user
-RUN addgroup --system --gid 1001 bunuser
-RUN adduser --system --uid 1001 bunuser
-
-# Copy the built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-
-# Change ownership of the app directory to the bunuser
-RUN chown -R bunuser:bunuser /app
-
-USER bunuser
-
+# Expose the port your application listens on
+# (Assuming your changeStream app listens on port 3000)
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["bun", "run", "dist/index.js"]
+# Entrypoint for the application
+# Specify the path to the compiled entry file relative to /app
+# 'bun run' will execute the JavaScript directly with the Bun runtime.
+# Ensure your `changeStream`'s `package.json` has a "start" script, e.g.:
+# "start": "bun run dist/index.js"
+CMD ["bun", "run", "--cwd", "packages/changeStream", "start"]
+# Alternatively, if you want to directly run the built file without a script:
+# CMD ["bun", "run", "packages/changeStream/dist/index.js"]

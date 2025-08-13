@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "scripts": {
-    "build": "tsc",
+    "build": "bun build ./src/index.ts --outdir dist --target node",
     "start": "bun run dist/index.js",
     "dev": "bun run src/index.ts",
     "example": "bun run src/example.ts",

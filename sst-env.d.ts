@@ -19,6 +19,10 @@ declare module "sst" {
       "type": "sst.aws.Router"
       "url": string
     }
+    "ChangeStreamService": {
+      "service": string
+      "type": "sst.aws.Service"
+    }
     "ClerkPublishableKey": {
       "type": "sst.sst.Secret"
       "value": string
@@ -36,6 +40,10 @@ declare module "sst" {
       "type": "sst.aws.Function"
       "url": string
     }
+    "EventsTopic": {
+      "arn": string
+      "type": "sst.aws.SnsTopic"
+    }
     "GeminiApiKey": {
       "type": "sst.sst.Secret"
       "value": string
@@ -43,6 +51,9 @@ declare module "sst" {
     "MongoUrl": {
       "type": "sst.sst.Secret"
       "value": string
+    }
+    "OnItChefVpc": {
+      "type": "sst.aws.Vpc"
     }
   }
 }

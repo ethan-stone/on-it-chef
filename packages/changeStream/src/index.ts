@@ -1,10 +1,10 @@
-import { ChangeStream } from "./change-stream";
+import { ChangeStream } from "./change-stream.js";
 import { MongoClient } from "@on-it-chef/core/services/db";
-import { recipeVersionsHandler } from "./recipe-versions-handler";
+import { eventsHandler } from "./events-handler.js";
 import { Resource } from "sst";
 
 async function main() {
-  const client = new MongoClient("");
+  const client = new MongoClient(Resource.MongoUrl.value);
 
   try {
     await client.connect();
@@ -22,7 +22,7 @@ async function main() {
       }
     );
 
-    changeStream.registerHandler(recipeVersionsHandler);
+    changeStream.registerHandler(eventsHandler);
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
