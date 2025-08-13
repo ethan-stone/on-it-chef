@@ -169,6 +169,19 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       `Forked recipe ${sourceRecipeId} version ${sourceVersionId} to ${forkedRecipe.id} for user ${user.id}`
     );
 
+    logger.metric(
+      `Forked recipe ${sourceRecipeId} version ${sourceVersionId} to ${forkedRecipe.id} for user ${user.id}`,
+      {
+        name: "recipe.version.created",
+        userId: user.id,
+        recipeId: forkedRecipe.id,
+        recipeVersionId: forkedRecipe.recentVersions.sort(
+          (a, b) => b.version - a.version
+        )[0].id,
+        timestamp: Date.now(),
+      }
+    );
+
     return c.json(forkedRecipe, 200);
   } catch (error) {
     logger.error("Error forking recipe", { error });

@@ -133,6 +133,19 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       `Generated new version for recipe ${recipeId} for user ${user.id}`
     );
 
+    logger.metric(
+      `Generated new version for recipe ${recipeId} for user ${user.id}`,
+      {
+        name: "recipe.version.created",
+        userId: user.id,
+        recipeId: recipeId,
+        recipeVersionId: updatedRecipe.recentVersions.sort(
+          (a, b) => b.version - a.version
+        )[0].id,
+        timestamp: Date.now(),
+      }
+    );
+
     return c.json(updatedRecipe, 200);
   } catch (error) {
     logger.error("Error generating recipe version", { error });

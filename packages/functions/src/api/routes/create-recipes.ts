@@ -119,6 +119,16 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     logger.info(`Created recipe ${recipe.id} for user ${user.id}`);
 
+    logger.metric(`Created recipe ${recipe.id} for user ${user.id}`, {
+      name: "recipe.version.created",
+      userId: user.id,
+      recipeId: recipe.id,
+      recipeVersionId: recipe.recentVersions.sort(
+        (a, b) => b.version - a.version
+      )[0].id,
+      timestamp: Date.now(),
+    });
+
     return c.json(recipe, 200);
   } catch (error) {
     logger.error("Error creating recipe", { error });

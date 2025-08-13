@@ -6,19 +6,11 @@ export type Fields = {
 
 const MetricFields = z.discriminatedUnion("name", [
   z.object({
-    name: z.literal("token.generated"),
-    workspaceId: z.string(),
-    clientId: z.string(),
-    apiId: z.string(),
+    name: z.literal("recipe.version.created"),
+    userId: z.string(),
+    recipeId: z.string(),
+    recipeVersionId: z.string(),
     timestamp: z.number(),
-  }),
-  z.object({
-    name: z.literal("token.verified"),
-    workspaceId: z.string(),
-    clientId: z.string(),
-    apiId: z.string(),
-    timestamp: z.number(),
-    deniedReason: z.string().nullable(),
   }),
 ]);
 

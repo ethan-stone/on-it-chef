@@ -10,6 +10,11 @@ declare module "sst" {
       "type": "sst.aws.Function"
       "url": string
     }
+    "ApiLogsSubscriptionFn": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
     "ApiRouter": {
       "type": "sst.aws.Router"
       "url": string
@@ -25,6 +30,11 @@ declare module "sst" {
     "ClerkWebhookSecret": {
       "type": "sst.sst.Secret"
       "value": string
+    }
+    "CreateAdminApiKeyFn": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
     }
     "GeminiApiKey": {
       "type": "sst.sst.Secret"
