@@ -1,0 +1,20 @@
+{
+  "name": "@on-it-chef/change-stream",
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "tsc",
+    "start": "bun run dist/index.js",
+    "dev": "bun run src/index.ts",
+    "example": "bun run src/example.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@on-it-chef/core": "workspace:*",
+    "mongodb": "^6.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "typescript": "^5.0.0"
+  }
+}
