@@ -1,7 +1,6 @@
 import { SNSMessage, SQSEvent } from "aws-lambda";
 import { safeJsonParse } from "./safeJsonParse";
 import { Events } from "@on-it-chef/core/services/events";
-import { Logger } from "./logger";
 
 export type EventHandlerConfig = {
   onEvent: (event: Events) => Promise<void>;

@@ -34,7 +34,7 @@ const logger = new Logger({
   dataset: "analytics",
 });
 
-export const handler = createEventHandler({
+export const main = createEventHandler({
   onEvent: async (event) => {
     switch (event.type) {
       case "recipe_version.created": {
