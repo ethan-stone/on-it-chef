@@ -5,12 +5,11 @@
 
 declare module "sst" {
   export interface Resource {
-    "ApiFn": {
-      "name": string
-      "type": "sst.aws.Function"
+    "AnalyticsQueue": {
+      "type": "sst.aws.Queue"
       "url": string
     }
-    "ApiLogsSubscriptionFn": {
+    "ApiFn": {
       "name": string
       "type": "sst.aws.Function"
       "url": string

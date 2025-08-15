@@ -1,6 +1,7 @@
 import { Collection, MongoClient } from "mongodb";
 import { ulid } from "ulid";
 import { z } from "zod";
+import { Events } from "./events";
 
 const User = z.object({
   id: z.string(),
@@ -42,9 +43,11 @@ const fromMongo = {
 export class UserService {
   private dbName = "onItChef";
   private usersColl: Collection<MongoUser>;
+  private eventsColl: Collection<Events>;
 
   constructor(private readonly client: MongoClient) {
     this.usersColl = this.client.db(this.dbName).collection<MongoUser>("users");
+    this.eventsColl = this.client.db(this.dbName).collection<Events>("events");
   }
 
   private uid(prefix: "user") {
@@ -136,5 +139,16 @@ export class UserService {
     }
 
     return fromMongo.user(result);
+  }
+
+  async getNumOfRecipeVersionsCreatedForUser(userId: string): Promise<number> {
+    const startTime = Date.now();
+    const numOfRecipeVersionsCreated = await this.eventsColl.countDocuments({
+      type: "recipe_version.created",
+      "payload.userId": userId,
+    });
+    const duration = Date.now() - startTime;
+    console.log(`[DB] getNumOfRecipeVersionsCreatedForUser: ${duration}ms`);
+    return numOfRecipeVersionsCreated;
   }
 }

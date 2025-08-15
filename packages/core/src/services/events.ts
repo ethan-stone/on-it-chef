@@ -11,7 +11,7 @@ const RecipeVersionCreatedEvent = BaseEvent.extend({
   payload: z.object({
     recipeVersionId: z.string(),
     recipeId: z.string(),
-    userId: z.string(),
+    userId: z.string(), // The userId will be the key for this event type.
   }),
 });
 

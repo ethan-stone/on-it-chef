@@ -131,6 +131,14 @@ async function createIndexes() {
     timestamp: 1,
   });
 
+  await events.createIndex({
+    "payload.userId": 1,
+  });
+
+  await events.createIndex({
+    key: 1,
+  });
+
   await client.close();
 }
 
