@@ -83,6 +83,16 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     });
   }
 
+  const canCreateRecipe =
+    await root.services.userService.canCreateRecipeVersion(user.id);
+
+  if (!canCreateRecipe.success) {
+    throw new HTTPException({
+      reason: "FORBIDDEN",
+      message: canCreateRecipe.message,
+    });
+  }
+
   const {
     visibility,
     includeDietaryRestrictions,

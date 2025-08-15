@@ -2,12 +2,16 @@ import { Collection, MongoClient } from "mongodb";
 import { ulid } from "ulid";
 import { z } from "zod";
 import { Events } from "./events";
+import { RemoteConfigService } from "./remote-configs";
 
 const User = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string().nullish(),
   dietaryRestrictions: z.string().nullish(),
+  subscriptionRenewalDate: z.date().nullish(), // The date when the user's subscription expires. This is also the renewal date. If they renew this will be updated.
+  recipeVersionsLimit: z.number(),
+  remainingRecipeVersions: z.number(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -40,12 +44,25 @@ const fromMongo = {
   },
 };
 
+export type CanCreateRecipeResult =
+  | {
+      success: true;
+    }
+  | {
+      success: false;
+      code: "SUBSCRIPTION_EXPIRED" | "RECIPE_VERSIONS_LIMIT_REACHED";
+      message: string;
+    };
+
 export class UserService {
   private dbName = "onItChef";
   private usersColl: Collection<MongoUser>;
   private eventsColl: Collection<Events>;
 
-  constructor(private readonly client: MongoClient) {
+  constructor(
+    private readonly client: MongoClient,
+    private readonly remoteConfigsService: RemoteConfigService
+  ) {
     this.usersColl = this.client.db(this.dbName).collection<MongoUser>("users");
     this.eventsColl = this.client.db(this.dbName).collection<Events>("events");
   }
@@ -141,14 +158,52 @@ export class UserService {
     return fromMongo.user(result);
   }
 
-  async getNumOfRecipeVersionsCreatedForUser(userId: string): Promise<number> {
+  async canCreateRecipeVersion(userId: string): Promise<CanCreateRecipeResult> {
+    const user = await this.getUser(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const purchasesEnabled = (
+      await this.remoteConfigsService.getRemoteConfig("purchasesEnabled", {
+        defaultValue: { enabled: true },
+        filter: { status: "active" },
+      })
+    ).value.enabled;
+
+    // If purchases are enabled check they are up to date on billing.
+    if (
+      purchasesEnabled &&
+      user.subscriptionRenewalDate &&
+      user.subscriptionRenewalDate < new Date()
+    ) {
+      return {
+        success: false,
+        code: "SUBSCRIPTION_EXPIRED",
+        message: "Subscription expired",
+      };
+    }
+
+    if (user.remainingRecipeVersions <= 0) {
+      return {
+        success: false,
+        code: "RECIPE_VERSIONS_LIMIT_REACHED",
+        message:
+          "You have reached the maximum number of recipes you can create.",
+      };
+    }
+
+    return { success: true };
+  }
+
+  async decrementRemainingRecipeVersions(userId: string): Promise<void> {
     const startTime = Date.now();
-    const numOfRecipeVersionsCreated = await this.eventsColl.countDocuments({
-      type: "recipe_version.created",
-      "payload.userId": userId,
-    });
+    await this.usersColl.updateOne(
+      { _id: userId },
+      { $inc: { remainingRecipeVersions: -1 } }
+    );
     const duration = Date.now() - startTime;
-    console.log(`[DB] getNumOfRecipeVersionsCreatedForUser: ${duration}ms`);
-    return numOfRecipeVersionsCreated;
+    console.log(`[DB] decrementRemainingRecipeVersions: ${duration}ms`);
   }
 }

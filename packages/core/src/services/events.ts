@@ -3,7 +3,7 @@ import { z } from "zod";
 const BaseEvent = z.object({
   _id: z.string(),
   key: z.string(),
-  timestamp: z.date(),
+  timestamp: z.string().pipe(z.coerce.date()),
 });
 
 const RecipeVersionCreatedEvent = BaseEvent.extend({

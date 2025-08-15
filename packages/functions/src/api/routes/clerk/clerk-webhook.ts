@@ -82,6 +82,8 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       await root.services.userService.upsertUser({
         id: evt.data.id,
         email: evt.data.email_addresses[0].email_address,
+        recipeVersionsLimit: 10,
+        remainingRecipeVersions: 10,
         createdAt: now,
         updatedAt: now,
       });
@@ -90,6 +92,8 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       await root.services.userService.upsertUser({
         id: evt.data.id,
         email: evt.data.email_addresses[0].email_address,
+        recipeVersionsLimit: 10,
+        remainingRecipeVersions: 10,
         createdAt: now,
         updatedAt: now,
       });

@@ -20,10 +20,6 @@ export async function init(): Promise<Root> {
     await mongoClient.connect();
   }
 
-  if (!userService) {
-    userService = new UserService(mongoClient);
-  }
-
   if (!recipesService) {
     recipesService = new RecipeService(mongoClient);
   }
@@ -38,6 +34,10 @@ export async function init(): Promise<Root> {
 
   if (!rateLimiter) {
     rateLimiter = new RateLimiter(mongoClient);
+  }
+
+  if (!userService) {
+    userService = new UserService(mongoClient, remoteConfigService);
   }
 
   return {

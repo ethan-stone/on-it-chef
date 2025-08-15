@@ -80,6 +80,16 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     });
   }
 
+  const canCreateRecipeVersion =
+    await root.services.userService.canCreateRecipeVersion(user.id);
+
+  if (!canCreateRecipeVersion.success) {
+    throw new HTTPException({
+      reason: "FORBIDDEN",
+      message: canCreateRecipeVersion.message,
+    });
+  }
+
   const { recipeId, message } = c.req.valid("json");
 
   try {
@@ -125,8 +135,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
           instructions: aiRecipe.instructions,
           message: message,
         },
-        message,
-        currentRecipe.dietaryRestrictions || undefined
+        message
       );
 
     logger.info(

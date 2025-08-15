@@ -4,7 +4,10 @@ import { publish } from "./sns";
 import { logger } from "./logger";
 
 export const eventsHandler: ChangeStreamHandler = async (options) => {
-  if (options.change.operationType === "insert") {
+  if (
+    options.change.operationType === "insert" &&
+    options.change.ns.coll === "events"
+  ) {
     const event = options.change.fullDocument as Events;
 
     await publish({

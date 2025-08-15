@@ -70,11 +70,32 @@ export class RemoteConfigService {
     return remoteConfigs.map(fromMongo.remoteConfig);
   }
 
-  async getRemoteConfig(name: string): Promise<RemoteConfig | null> {
+  /**
+   * Get a remote config by name. A default value must be provided in case the remote config is not found.
+   * @param name - The name of the remote config.
+   * @param options - The options for the remote config.
+   * @returns The value of the remote config.
+   */
+  async getRemoteConfig(
+    name: string,
+    options: {
+      filter?: {
+        status?: RemoteConfig["status"];
+      };
+      defaultValue: RemoteConfig["value"];
+    }
+  ): Promise<{ value: RemoteConfig["value"] }> {
     const remoteConfig = await this.remoteConfigsColl.findOne({
       name,
+      ...options.filter,
     });
-    return remoteConfig ? fromMongo.remoteConfig(remoteConfig) : null;
+    return remoteConfig
+      ? {
+          value: fromMongo.remoteConfig(remoteConfig).value,
+        }
+      : {
+          value: options.defaultValue,
+        };
   }
 
   async createRemoteConfig(

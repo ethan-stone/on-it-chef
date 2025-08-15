@@ -5,10 +5,6 @@
 
 declare module "sst" {
   export interface Resource {
-    "AnalyticsQueue": {
-      "type": "sst.aws.Queue"
-      "url": string
-    }
     "ApiFn": {
       "name": string
       "type": "sst.aws.Function"
@@ -53,6 +49,10 @@ declare module "sst" {
     }
     "OnItChefVpc": {
       "type": "sst.aws.Vpc"
+    }
+    "UserQuotaQueue": {
+      "type": "sst.aws.Queue"
+      "url": string
     }
   }
 }
