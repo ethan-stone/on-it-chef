@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import { Resource } from "sst";
 import { UserService } from "@on-it-chef/core/services/users";
 import { RemoteConfigService } from "@on-it-chef/core/services/remote-configs";
+import { createEventHandler } from "../utils/createEventHandler";
 
 const mongoClient = new MongoClient(Resource.MongoUrl.value);
 
@@ -26,56 +27,17 @@ const userService = new UserService(mongoClient, remoteConfigService);
 // kanuh.fifo:cc6de3a4-a007-418b-a23a-6bdd5f591b49"\n' +
 // |  +8ms            '}',
 
-export const main: SQSHandler = async (event, ctx) => {
-  const logger = new Logger({
-    env: process.env.NODE_ENV === "production" ? "production" : "development",
-    service: "functions",
-    namespace: "analytics",
-    dataset: "analytics",
-    requestId: ctx.awsRequestId,
-  });
+const logger = new Logger({
+  env: process.env.NODE_ENV === "production" ? "production" : "development",
+  service: "functions",
+  namespace: "analytics",
+  dataset: "analytics",
+});
 
-  for (const record of event.Records) {
-    const snsMessageParseResult = safeJsonParse(record.body);
-
-    if (!snsMessageParseResult.success) {
-      logger.error("Failed to parse SNS message", {
-        error: snsMessageParseResult.error,
-      });
-
-      continue;
-    }
-
-    const snsMessage = snsMessageParseResult.data as SNSMessage;
-
-    const messageParseResult = safeJsonParse(snsMessage.Message);
-
-    if (!messageParseResult.success) {
-      logger.error("Failed to parse event", {
-        error: messageParseResult.error,
-      });
-
-      continue;
-    }
-
-    const eventParseResult = await Events.safeParseAsync(
-      messageParseResult.data
-    );
-
-    if (!eventParseResult.success) {
-      logger.error("Failed to parse event", {
-        error: eventParseResult.error,
-      });
-
-      continue;
-    }
-
-    const event = eventParseResult.data;
-
+export const handler = createEventHandler({
+  onEvent: async (event) => {
     switch (event.type) {
       case "recipe_version.created": {
-        logger.info(`Recipe version ${event.payload.recipeVersionId} created`);
-
         await userService.decrementRemainingRecipeVersions(
           event.payload.userId
         );
@@ -83,8 +45,9 @@ export const main: SQSHandler = async (event, ctx) => {
         logger.info(
           `Decremented remaining recipe versions for user ${event.payload.userId}`
         );
+
         break;
       }
     }
-  }
-};
+  },
+});

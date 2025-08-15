@@ -30,14 +30,14 @@ export type LoggerOptions =
       service: string;
       namespace: string;
       dataset: string;
-      requestId: string;
+      requestId?: string;
     }
   | {
       env: "production";
       service: string;
       namespace: string;
       dataset: string;
-      requestId: string;
+      requestId?: string;
     };
 
 export class Logger implements ILogger {
