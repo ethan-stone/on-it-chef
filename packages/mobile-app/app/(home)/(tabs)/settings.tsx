@@ -404,13 +404,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-start",
     alignItems: "center",
+    paddingHorizontal: 20,
     paddingTop: 160,
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 12,
-    width: "80%",
+    width: "100%",
     maxHeight: "80%",
   },
   modalTitle: {

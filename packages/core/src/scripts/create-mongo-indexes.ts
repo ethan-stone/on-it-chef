@@ -123,6 +123,15 @@ async function createIndexes() {
     }
   );
 
+  await rateLimitWindows.createIndex(
+    {
+      windowStart: 1,
+    },
+    {
+      expireAfterSeconds: 60 * 60 * 24,
+    }
+  );
+
   await events.createIndex({
     key: 1,
   });
