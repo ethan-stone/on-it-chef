@@ -44,7 +44,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   await checkRateLimit(c, root.services.rateLimiter, {
     entityId: user.id,
-    maxRequests: 100,
+    maxRequests: 1000,
   });
 
   logger.info("Getting all active remote configs");

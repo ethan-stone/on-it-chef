@@ -1,6 +1,7 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
 import { errorResponseSchemas, HTTPException } from "../errors";
+import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
   operationId: "listSharedRecipes",
@@ -84,6 +85,11 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       message: "User is not logged in.",
     });
   }
+
+  await checkRateLimit(c, root.services.rateLimiter, {
+    entityId: user.id,
+    maxRequests: 1000,
+  });
 
   const { page, limit } = c.req.valid("query");
 

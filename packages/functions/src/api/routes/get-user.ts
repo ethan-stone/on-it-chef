@@ -1,6 +1,7 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { errorResponseSchemas, HTTPException } from "../errors";
 import { HonoEnv } from "../app";
+import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
   operationId: "getLoggedInUser",
@@ -29,6 +30,7 @@ const route = createRoute({
 const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   const logger = c.get("logger");
   const user = c.get("user");
+  const root = c.get("root");
 
   if (!user) {
     logger.info("User is not logged in.");
@@ -38,6 +40,11 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       message: "User is not logged in.",
     });
   }
+
+  await checkRateLimit(c, root.services.rateLimiter, {
+    entityId: user.id,
+    maxRequests: 1000,
+  });
 
   return c.json(
     {

@@ -2,6 +2,7 @@ import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
 import { errorResponseSchemas, HTTPException } from "../errors";
 import { generateRecipeVersion } from "../ai";
+import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
   operationId: "generateRecipeVersion",
@@ -79,6 +80,11 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       message: "User is not logged in.",
     });
   }
+
+  await checkRateLimit(c, root.services.rateLimiter, {
+    entityId: user.id,
+    maxRequests: 1000,
+  });
 
   const canCreateRecipeVersion =
     await root.services.userService.canCreateRecipeVersion(user.id);
