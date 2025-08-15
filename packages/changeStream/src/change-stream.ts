@@ -5,6 +5,7 @@ import {
   Db,
   ChangeStream as MongoChangeStream,
 } from "mongodb";
+import { logger } from "./logger";
 
 export type ResumeToken = {
   dbName: string;
@@ -69,9 +70,9 @@ export class ChangeStream {
           { upsert: true }
         );
 
-        console.info(`Updated heartbeat for ${this.db.databaseName}`);
+        logger.info(`Updated heartbeat for ${this.db.databaseName}`);
       } catch (error) {
-        console.error("Failed to update heartbeat", error as Error);
+        logger.error("Failed to update heartbeat", error as Error);
       }
     }, 60000);
   }
@@ -89,7 +90,7 @@ export class ChangeStream {
         options.change.ns.coll === this.heartbeatCollectionName
       ) {
         // we don't need to do anything special. just a log is enough
-        console.info(`Handling heartbeat change`);
+        logger.info(`Handling heartbeat change`);
       }
     };
 
@@ -98,7 +99,7 @@ export class ChangeStream {
 
   async start() {
     if (this.isRunning) {
-      console.warn("Change stream is already running");
+      logger.warn("Change stream is already running");
       return;
     }
 
@@ -112,7 +113,7 @@ export class ChangeStream {
 
       if (resumeToken) {
         this.options.resumeAfter = resumeToken.resumeToken;
-        console.info(
+        logger.info(
           `Resuming from token: ${JSON.stringify(resumeToken.resumeToken)}`
         );
       }
@@ -124,7 +125,7 @@ export class ChangeStream {
       await this.startHeartbeat();
       this.registerHeartbeatHandler();
 
-      console.info(
+      logger.info(
         `Started change stream for database: ${this.db.databaseName}`
       );
 
@@ -142,11 +143,11 @@ export class ChangeStream {
             (change.ns.coll === this.resumeTokenCollectionName ||
               this.options.collectionsToIgnore?.includes(change.ns.coll))
           ) {
-            console.info(`Skipping change for collection: ${change.ns.coll}`);
+            logger.info(`Skipping change for collection: ${change.ns.coll}`);
             continue;
           }
 
-          console.info(
+          logger.info(
             `Received change for ${this.db.databaseName}. Operation type: ${change.operationType}. `
           );
 
@@ -158,7 +159,7 @@ export class ChangeStream {
                 db: this.db,
               });
             } catch (error) {
-              console.error(
+              logger.error(
                 `Handler failed for change: ${change.operationType}`,
                 error as Error
               );
@@ -181,16 +182,16 @@ export class ChangeStream {
             }
           );
 
-          console.info({
-            message: `Processed change for ${this.db.databaseName}. Operation type: ${change.operationType}`,
-          });
+          logger.info(
+            `Processed change for ${this.db.databaseName}. Operation type: ${change.operationType}`
+          );
         } catch (error) {
-          console.error("Failed to process change", error as Error);
+          logger.error("Failed to process change", error as Error);
           // Continue processing other changes even if one fails
         }
       }
     } catch (error) {
-      console.error("Change stream error", error as Error);
+      logger.error("Change stream error", error as Error);
       this.isRunning = false;
       throw error;
     }
@@ -209,7 +210,7 @@ export class ChangeStream {
       this.changeStream = null;
     }
 
-    console.info("Change stream stopped");
+    logger.info("Change stream stopped");
   }
 
   isActive(): boolean {

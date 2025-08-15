@@ -2,13 +2,15 @@ import { ChangeStream } from "./change-stream.js";
 import { MongoClient } from "@on-it-chef/core/services/db";
 import { eventsHandler } from "./events-handler.js";
 import { Resource } from "sst";
+import { logger } from "./logger.js";
 
 async function main() {
   const client = new MongoClient(Resource.MongoUrl.value);
 
   try {
     await client.connect();
-    console.info("Connected to MongoDB successfully");
+
+    logger.info("Connected to MongoDB successfully");
 
     const db = client.db("onItChef");
 
@@ -26,24 +28,24 @@ async function main() {
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
-      console.info("Received SIGINT, shutting down gracefully...");
+      logger.info("Received SIGINT, shutting down gracefully...");
       await changeStream.stop();
       await client.close();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
-      console.info("Received SIGTERM, shutting down gracefully...");
+      logger.info("Received SIGTERM, shutting down gracefully...");
       await changeStream.stop();
       await client.close();
       process.exit(0);
     });
 
     // Start the change stream
-    console.info("Starting change stream...");
+    logger.info("Starting change stream...");
     await changeStream.start();
   } catch (error) {
-    console.error("Failed to start change stream", error as Error);
+    logger.error("Failed to start change stream", error as Error);
     await client.close();
     process.exit(1);
   }
@@ -51,6 +53,6 @@ async function main() {
 
 // Run the example
 main().catch((error) => {
-  console.error("Unhandled error in main", error as Error);
+  logger.error("Unhandled error in main", error as Error);
   process.exit(1);
 });
