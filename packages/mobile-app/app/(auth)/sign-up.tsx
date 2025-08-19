@@ -8,14 +8,17 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import { useSignUp } from "@clerk/clerk-expo";
+import { useSignUp, useSSO } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import * as Linking from "expo-linking";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { startSSOFlow } = useSSO();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
@@ -75,6 +78,26 @@ export default function SignUpScreen() {
       Alert.alert("Error", "Verification failed. Please check your code.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const googleSignUp = async () => {
+    try {
+      const result = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: Linking.createURL("/"),
+      });
+
+      if (result.createdSessionId && result.setActive) {
+        await result.setActive({ session: result.createdSessionId });
+        router.replace("/");
+      } else {
+        console.error(JSON.stringify(result, null, 2));
+        Alert.alert("Error", "Sign up failed. Please try again.");
+      }
+    } catch (error) {
+      console.error(JSON.stringify(error, null, 2));
+      Alert.alert("Error", "Sign up failed. Please try again.");
     }
   };
 
@@ -181,6 +204,14 @@ export default function SignUpScreen() {
                 {isLoading ? "Sending code..." : "Send Code"}
               </ThemedText>
             </TouchableOpacity>
+            <View style={styles.orContainer}>
+              <View style={styles.orLine} />
+              <ThemedText style={styles.orText}>Or</ThemedText>
+              <View style={styles.orLine} />
+            </View>
+            <View style={styles.googleButtonContainer}>
+              <GoogleSignInButton onPress={googleSignUp} />
+            </View>
           </View>
 
           {/* Footer */}
@@ -280,5 +311,23 @@ const styles = StyleSheet.create({
     color: "#8B7355", // Medium brown text
     fontWeight: "600",
     textDecorationLine: "underline",
+  },
+  orContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 16,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#8B7355",
+  },
+  orText: {
+    fontSize: 16,
+    color: "#8B7355",
+  },
+  googleButtonContainer: {
+    marginTop: 16,
   },
 });
