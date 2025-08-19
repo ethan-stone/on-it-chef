@@ -15,10 +15,20 @@ const RecipeVersionCreatedEvent = BaseEvent.extend({
   }),
 });
 
+const UserCreatedEvent = BaseEvent.extend({
+  type: z.literal("user.created"),
+  payload: z.object({
+    userId: z.string(),
+  }),
+});
+
 export type RecipeVersionCreatedEvent = z.infer<
   typeof RecipeVersionCreatedEvent
 >;
 
-export const Events = z.discriminatedUnion("type", [RecipeVersionCreatedEvent]);
+export const Events = z.discriminatedUnion("type", [
+  UserCreatedEvent,
+  RecipeVersionCreatedEvent,
+]);
 
 export type Events = z.infer<typeof Events>;

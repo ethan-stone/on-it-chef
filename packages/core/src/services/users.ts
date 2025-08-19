@@ -67,15 +67,36 @@ export class UserService {
     this.eventsColl = this.client.db(this.dbName).collection<Events>("events");
   }
 
-  private uid(prefix: "user") {
+  private uid(prefix: "user" | "evt") {
     return `${prefix}_${ulid()}`;
   }
 
   async createUser(user: Omit<User, "id">): Promise<User> {
     const startTime = Date.now();
     const id = this.uid("user");
-    const mongoUser = toMongo.user({ ...user, id });
-    await this.usersColl.insertOne(mongoUser);
+
+    const session = this.client.startSession();
+
+    const mongoUser = await session.withTransaction(async (session) => {
+      const mongoUser = toMongo.user({ ...user, id });
+      await this.usersColl.insertOne(mongoUser, { session });
+      await this.eventsColl.insertOne(
+        {
+          _id: this.uid("evt"),
+          type: "user.created",
+          key: id,
+          timestamp: new Date(),
+          payload: {
+            userId: id,
+          },
+        },
+        {
+          session,
+        }
+      );
+      return mongoUser;
+    });
+
     const duration = Date.now() - startTime;
     console.log(`[DB] createUser: ${duration}ms`);
     return fromMongo.user(mongoUser);
