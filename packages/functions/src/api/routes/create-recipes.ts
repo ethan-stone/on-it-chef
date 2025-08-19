@@ -84,14 +84,10 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     });
   }
 
-  const rateLimitCheckResult = await checkRateLimit(
-    c,
-    root.services.rateLimiter,
-    {
-      entityId: user.id,
-      maxRequests: 1000,
-    }
-  );
+  await checkRateLimit(c, root.services.rateLimiter, {
+    entityId: user.id,
+    maxRequests: 1000,
+  });
 
   const canCreateRecipe =
     await root.services.userService.canCreateRecipeVersion(user.id);
