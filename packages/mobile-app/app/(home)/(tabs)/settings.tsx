@@ -18,6 +18,7 @@ import { useToast } from "@/components/ToastContext";
 import React, { useState, useEffect, useRef } from "react";
 import Purchases from "react-native-purchases";
 import PurchasesPaywall from "react-native-purchases-ui";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 type SettingItem = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -127,8 +128,25 @@ export default function Settings() {
           subtitle: user?.email || "No email set",
           action: "none",
         },
+        {
+          icon: "stats-chart-outline",
+          title: "Recipe Versions Limit",
+          subtitle: `You have ${
+            (user?.recipeVersionsLimit || 0) -
+            (user?.remainingRecipeVersions || 0)
+          } recipe versions left`,
+          action: "none",
+          customContent: (
+            <ProgressBar
+              barColor="#5D4E37"
+              used={user?.remainingRecipeVersions || 0}
+              limit={user?.recipeVersionsLimit || 0}
+            />
+          ),
+        },
       ],
     },
+
     {
       title: "Preferences",
       items: [
