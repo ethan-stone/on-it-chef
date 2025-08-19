@@ -355,6 +355,24 @@ export class UserService {
       );
 
       /**
+       * If the user has never been active, record an activity event.
+       */
+      if (user && !user.lastActiveAt) {
+        await this.eventsColl.insertOne(
+          {
+            _id: this.uid("evt"),
+            type: "user.activity",
+            key: userId,
+            timestamp: new Date(),
+            payload: {
+              userId,
+            },
+          },
+          { session }
+        );
+      }
+
+      /**
        * The lowest resolution for tracking user activity is 1 day.
        * So we only record an activity event if the current day is different than the day of the previous "lastActiveAt".
        */
