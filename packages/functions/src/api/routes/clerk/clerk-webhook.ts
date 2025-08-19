@@ -3,6 +3,7 @@ import { errorResponseSchemas, HTTPException } from "../../errors";
 import { HonoEnv } from "../../app";
 import { WebhookEvent } from "@clerk/backend/webhooks";
 import { Webhook } from "svix";
+import { addMonths } from "@on-it-chef/core/services/users";
 
 const route = createRoute({
   operationId: "clerkWebhook",
@@ -84,6 +85,8 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         email: evt.data.email_addresses[0].email_address,
         recipeVersionsLimit: 10,
         remainingRecipeVersions: 10,
+        subscriptionTier: "free",
+        subscriptionRenewalDate: addMonths(now, 1),
         createdAt: now,
         updatedAt: now,
       });
@@ -94,6 +97,8 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         email: evt.data.email_addresses[0].email_address,
         recipeVersionsLimit: 10,
         remainingRecipeVersions: 10,
+        subscriptionTier: "free",
+        subscriptionRenewalDate: addMonths(now, 1),
         createdAt: now,
         updatedAt: now,
       });

@@ -1,4 +1,4 @@
-import { useSignIn } from "@clerk/clerk-expo";
+import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import {
   StyleSheet,
@@ -13,9 +13,12 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
+import * as Linking from "expo-linking";
 
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn();
+  const { startSSOFlow } = useSSO();
   const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
@@ -81,6 +84,26 @@ export default function Page() {
       Alert.alert("Error", "Verification failed. Please check your code.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const googleSignIn = async () => {
+    try {
+      const result = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: Linking.createURL("/"),
+      });
+
+      if (result.createdSessionId && result.setActive) {
+        await result.setActive({ session: result.createdSessionId });
+        router.replace("/");
+      } else {
+        console.error(JSON.stringify(result, null, 2));
+        Alert.alert("Error", "Sign in failed. Please try again.");
+      }
+    } catch (error) {
+      console.error(JSON.stringify(error, null, 2));
+      Alert.alert("Error", "Sign in failed. Please try again.");
     }
   };
 
@@ -187,6 +210,14 @@ export default function Page() {
                 {isLoading ? "Sending code..." : "Send Code"}
               </ThemedText>
             </TouchableOpacity>
+            <View style={styles.orContainer}>
+              <View style={styles.orLine} />
+              <ThemedText style={styles.orText}>Or</ThemedText>
+              <View style={styles.orLine} />
+            </View>
+            <View style={styles.googleButtonContainer}>
+              <GoogleSignInButton onPress={googleSignIn} />
+            </View>
           </View>
 
           {/* Footer */}
@@ -288,5 +319,24 @@ const styles = StyleSheet.create({
     color: "#8B7355", // Medium brown text
     fontWeight: "600",
     textDecorationLine: "underline",
+  },
+  orContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+  },
+  orText: {
+    fontSize: 16,
+    color: "#8B7355", // Medium brown text
+    marginHorizontal: 16,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#8B7355", // Medium brown text
+  },
+  googleButtonContainer: {
+    marginTop: 16,
   },
 });
