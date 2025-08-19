@@ -99,6 +99,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     throw new HTTPException({
       type: "FORBIDDEN",
       message: canForkRecipe.message,
+      code: canForkRecipe.code,
     });
   }
 

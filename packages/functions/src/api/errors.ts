@@ -14,6 +14,11 @@ export const ErrorType = z.enum([
   "INTERNAL_SERVER_ERROR",
 ]);
 
+export const ErrorCode = z.enum([
+  "SUBSCRIPTION_EXPIRED",
+  "RECIPE_VERSIONS_LIMIT_REACHED",
+]);
+
 export function createErrorSchema(
   types: [z.infer<typeof ErrorType>, ...z.infer<typeof ErrorType>[]]
 ) {
@@ -21,7 +26,12 @@ export function createErrorSchema(
     type: z.enum(types).openapi({
       example: types[0],
       description:
-        "A string that can be used programatically to determine the type of error",
+        "A string that can be used programatically to determine the type of error. Usually corresponds to the HTTP status code.",
+    }),
+    code: ErrorCode.openapi({
+      example: ErrorCode.enum.SUBSCRIPTION_EXPIRED,
+      description:
+        "A string that can be used programatically to determine the code of the error.",
     }),
     message: z.string().openapi({
       description: "A human-readable message for the error",
@@ -128,10 +138,16 @@ function typeToStatus(type: z.infer<typeof ErrorType>) {
 
 export class HTTPException extends HonoHTTPException {
   public readonly type: z.infer<typeof ErrorType>;
+  public readonly code: z.infer<typeof ErrorCode> | undefined;
 
-  constructor(args: { type: z.infer<typeof ErrorType>; message: string }) {
+  constructor(args: {
+    type: z.infer<typeof ErrorType>;
+    message: string;
+    code?: z.infer<typeof ErrorCode>;
+  }) {
     super(typeToStatus(args.type), { message: args.message });
     this.type = args.type;
+    this.code = args.code;
   }
 }
 
