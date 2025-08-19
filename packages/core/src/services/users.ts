@@ -28,6 +28,7 @@ const User = z.object({
   subscriptionRenewalDate: z.date(), // The date when the user's subscription expires. This is also the renewal date. If they renew this will be updated. This is present even for free users.
   recipeVersionsLimit: z.number(),
   remainingRecipeVersions: z.number(),
+  lastActiveAt: z.date().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -174,12 +175,36 @@ export class UserService {
 
   async upsertUser(user: User): Promise<User> {
     const startTime = Date.now();
-    const mongoUser = toMongo.user(user);
-    await this.usersColl.updateOne(
-      { _id: user.id },
-      { $set: mongoUser },
-      { upsert: true }
-    );
+
+    const session = this.client.startSession();
+
+    const mongoUser = await session.withTransaction(async (session) => {
+      const mongoUser = toMongo.user(user);
+
+      const result = await this.usersColl.updateOne(
+        { _id: user.id },
+        { $set: mongoUser },
+        { upsert: true, session }
+      );
+
+      if (result.upsertedId) {
+        await this.eventsColl.insertOne(
+          {
+            _id: this.uid("evt"),
+            type: "user.created",
+            key: user.id,
+            timestamp: new Date(),
+            payload: {
+              userId: user.id,
+            },
+          },
+          { session }
+        );
+      }
+
+      return mongoUser;
+    });
+
     const duration = Date.now() - startTime;
     console.log(`[DB] upsertUser: ${duration}ms`);
     return fromMongo.user(mongoUser);
@@ -315,5 +340,15 @@ export class UserService {
     console.log(`[DB] topUpRemainingRecipeVersions: ${duration}ms`);
 
     return fromMongo.user(result);
+  }
+
+  async updateLastActiveAt(userId: string): Promise<void> {
+    const startTime = Date.now();
+    await this.usersColl.updateOne(
+      { _id: userId },
+      { $set: { lastActiveAt: new Date() } }
+    );
+    const duration = Date.now() - startTime;
+    console.log(`[DB] updateLastActiveAt: ${duration}ms`);
   }
 }

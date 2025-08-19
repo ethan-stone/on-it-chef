@@ -136,6 +136,10 @@ app.use("*", async (c, next) => {
   } else {
     const user = await root.services.userService.getUser(session.userId);
 
+    if (user) {
+      await root.services.userService.updateLastActiveAt(session.userId);
+    }
+
     c.set("user", user ?? null);
   }
 

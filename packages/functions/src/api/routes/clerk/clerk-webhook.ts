@@ -87,6 +87,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         remainingRecipeVersions: 10,
         subscriptionTier: "free",
         subscriptionRenewalDate: addMonths(now, 1),
+        lastActiveAt: now,
         createdAt: now,
         updatedAt: now,
       });
@@ -99,6 +100,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         remainingRecipeVersions: 10,
         subscriptionTier: "free",
         subscriptionRenewalDate: addMonths(now, 1),
+        lastActiveAt: now,
         createdAt: now,
         updatedAt: now,
       });
