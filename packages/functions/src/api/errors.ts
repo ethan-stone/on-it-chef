@@ -4,7 +4,7 @@ import { z } from "@hono/zod-openapi";
 import { generateErrorMessage } from "zod-error";
 import { HonoEnv } from "./app";
 
-export const ErrorReason = z.enum([
+export const ErrorType = z.enum([
   "NOT_FOUND",
   "BAD_REQUEST",
   "FORBIDDEN",
@@ -15,11 +15,11 @@ export const ErrorReason = z.enum([
 ]);
 
 export function createErrorSchema(
-  reasons: [z.infer<typeof ErrorReason>, ...z.infer<typeof ErrorReason>[]]
+  types: [z.infer<typeof ErrorType>, ...z.infer<typeof ErrorType>[]]
 ) {
   return z.object({
-    reason: z.enum(reasons).openapi({
-      example: reasons[0],
+    type: z.enum(types).openapi({
+      example: types[0],
       description:
         "A string that can be used programatically to determine the type of error",
     }),
@@ -95,7 +95,7 @@ export const errorResponseSchemas = {
 };
 
 export const ErrorSchema = z.object({
-  reason: ErrorReason.openapi({
+  type: ErrorType.openapi({
     example: "INTERNAL_SERVER_ERROR",
     description:
       "A string that can be used programatically to determine the type of error",
@@ -107,8 +107,8 @@ export const ErrorSchema = z.object({
 
 export type ErrorResponse = z.infer<typeof ErrorSchema>;
 
-function reasonToStatus(reason: z.infer<typeof ErrorReason>) {
-  switch (reason) {
+function typeToStatus(type: z.infer<typeof ErrorType>) {
+  switch (type) {
     case "UNAUTHORIZED":
       return 401;
     case "RATELIMIT_EXCEEDED":
@@ -127,11 +127,11 @@ function reasonToStatus(reason: z.infer<typeof ErrorReason>) {
 }
 
 export class HTTPException extends HonoHTTPException {
-  public readonly reason: z.infer<typeof ErrorReason>;
+  public readonly type: z.infer<typeof ErrorType>;
 
-  constructor(args: { reason: z.infer<typeof ErrorReason>; message: string }) {
-    super(reasonToStatus(args.reason), { message: args.message });
-    this.reason = args.reason;
+  constructor(args: { type: z.infer<typeof ErrorType>; message: string }) {
+    super(typeToStatus(args.type), { message: args.message });
+    this.type = args.type;
   }
 }
 
@@ -150,7 +150,7 @@ export function handleZodError(
 
     return ctx.json<ErrorResponse>(
       {
-        reason: "BAD_REQUEST",
+        type: "BAD_REQUEST",
         message: readableMessage,
       },
       400
@@ -164,7 +164,7 @@ export function handleError(err: Error, ctx: Context<HonoEnv>): Response {
   if (err instanceof HTTPException) {
     return ctx.json<ErrorResponse>(
       {
-        reason: err.reason,
+        type: err.type,
         message: err.message,
       },
       err.status
@@ -181,7 +181,7 @@ export function handleError(err: Error, ctx: Context<HonoEnv>): Response {
 
   return ctx.json<ErrorResponse>(
     {
-      reason: "INTERNAL_SERVER_ERROR",
+      type: "INTERNAL_SERVER_ERROR",
       message: "An internal server error occurred",
     },
     500

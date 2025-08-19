@@ -79,7 +79,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     logger.info("User is not logged in.");
 
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "User is not logged in.",
     });
   }
@@ -94,7 +94,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   if (!canCreateRecipe.success) {
     throw new HTTPException({
-      reason: "FORBIDDEN",
+      type: "FORBIDDEN",
       message: canCreateRecipe.message,
     });
   }
@@ -149,7 +149,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   } catch (error) {
     logger.error("Error creating recipe", { error });
     throw new HTTPException({
-      reason: "INTERNAL_SERVER_ERROR",
+      type: "INTERNAL_SERVER_ERROR",
       message: "Failed to create recipe",
     });
   }

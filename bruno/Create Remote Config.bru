@@ -1,0 +1,32 @@
+meta {
+  name: Create Remote Config
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/admin/remoteConfigs.createRemoteConfig
+  body: json
+  auth: apikey
+}
+
+auth:apikey {
+  key: x-on-it-chef-admin-api-key
+  value: {{admin_api_key}}
+  placement: header
+}
+
+body:json {
+  {
+    "name": "purchasesEnabled",
+    "value": {
+      "enabled": false
+    },
+    "status": "active",
+    "description": "Whether or not purchases are enabled or not. If enabled, valid subscriptions will be required."
+  }
+}
+
+settings {
+  encodeUrl: true
+}

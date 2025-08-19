@@ -79,7 +79,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     logger.info("User is not logged in.");
 
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "User is not logged in.",
     });
   }

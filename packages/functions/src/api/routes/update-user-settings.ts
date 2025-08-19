@@ -48,7 +48,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     logger.info("User is not logged in.");
 
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "User is not logged in.",
     });
   }
@@ -73,7 +73,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   } catch (error) {
     logger.error("Error updating user settings", { error });
     throw new HTTPException({
-      reason: "INTERNAL_SERVER_ERROR",
+      type: "INTERNAL_SERVER_ERROR",
       message: "Failed to update user settings",
     });
   }

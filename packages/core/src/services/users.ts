@@ -190,7 +190,7 @@ export class UserService {
         success: false,
         code: "RECIPE_VERSIONS_LIMIT_REACHED",
         message:
-          "You have reached the maximum number of recipes you can create.",
+          "You have reached the maximum number of recipes you can create. You can upgrade your subscription to create more recipes.",
       };
     }
 

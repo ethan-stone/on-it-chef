@@ -37,7 +37,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   if (!user) {
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "Unauthorized. User is required.",
     });
   }

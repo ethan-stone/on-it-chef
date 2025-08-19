@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "On It Chef",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

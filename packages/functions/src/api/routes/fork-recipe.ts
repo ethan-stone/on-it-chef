@@ -81,7 +81,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     logger.info("User is not logged in.");
 
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "User is not logged in.",
     });
   }
@@ -97,7 +97,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   if (!canForkRecipe.success) {
     throw new HTTPException({
-      reason: "FORBIDDEN",
+      type: "FORBIDDEN",
       message: canForkRecipe.message,
     });
   }
@@ -120,7 +120,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     if (!sourceRecipe) {
       throw new HTTPException({
-        reason: "NOT_FOUND",
+        type: "NOT_FOUND",
         message: "Source recipe not found",
       });
     }
@@ -135,7 +135,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     if (!isOwner && !isShared) {
       throw new HTTPException({
-        reason: "FORBIDDEN",
+        type: "FORBIDDEN",
         message: "You don't have permission to fork this recipe",
       });
     }
@@ -146,7 +146,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     if (!sourceVersion) {
       throw new HTTPException({
-        reason: "NOT_FOUND",
+        type: "NOT_FOUND",
         message: "Source recipe version not found",
       });
     }
@@ -203,7 +203,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   } catch (error) {
     logger.error("Error forking recipe", { error });
     throw new HTTPException({
-      reason: "INTERNAL_SERVER_ERROR",
+      type: "INTERNAL_SERVER_ERROR",
       message: "Failed to fork recipe",
     });
   }

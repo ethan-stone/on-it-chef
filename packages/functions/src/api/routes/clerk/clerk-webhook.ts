@@ -46,7 +46,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   if (!svixId || !svixTimestamp || !svixSignature) {
     throw new HTTPException({
-      reason: "BAD_REQUEST",
+      type: "BAD_REQUEST",
       message: "Missing required headers",
     });
   }
@@ -62,7 +62,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     if (!payload) {
       throw new HTTPException({
-        reason: "BAD_REQUEST",
+        type: "BAD_REQUEST",
         message: "Missing payload",
       });
     }
@@ -101,7 +101,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       if (!evt.data.id) {
         logger.error("User deleted event without id", { evt });
         throw new HTTPException({
-          reason: "BAD_REQUEST",
+          type: "BAD_REQUEST",
           message: "User deleted event without id",
         });
       }
@@ -116,7 +116,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
     logger.error("Error processing clerk webhook", { error });
     throw new HTTPException({
-      reason: "INTERNAL_SERVER_ERROR",
+      type: "INTERNAL_SERVER_ERROR",
       message: "Error processing clerk webhook",
     });
   }

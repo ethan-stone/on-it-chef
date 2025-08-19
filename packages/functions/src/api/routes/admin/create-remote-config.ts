@@ -51,7 +51,7 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   if (!adminApiKey || adminApiKey.status === "inactive") {
     throw new HTTPException({
-      reason: "UNAUTHORIZED",
+      type: "UNAUTHORIZED",
       message: "Unauthorized. Admin API key is required.",
     });
   }

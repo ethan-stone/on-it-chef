@@ -51,7 +51,7 @@ export async function checkRateLimit(
 
   if (!rateLimitCheckResult.passed) {
     throw new HTTPException({
-      reason: "RATELIMIT_EXCEEDED",
+      type: "RATELIMIT_EXCEEDED",
       message: "Rate limit exceeded. Please try again later.",
     });
   }
