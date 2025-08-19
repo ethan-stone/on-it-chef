@@ -314,18 +314,19 @@ const styles = StyleSheet.create({
   },
   orContainer: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    marginVertical: 16,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  orText: {
+    fontSize: 16,
+    color: "#8B7355", // Medium brown text
+    marginHorizontal: 16,
   },
   orLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#8B7355",
-  },
-  orText: {
-    fontSize: 16,
-    color: "#8B7355",
+    backgroundColor: "#8B7355", // Medium brown text
   },
   googleButtonContainer: {
     marginTop: 16,
