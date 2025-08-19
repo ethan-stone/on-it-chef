@@ -31,7 +31,7 @@ const route = createRoute({
 
 const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
   const logger = c.get("logger");
-  const user = c.get("user");
+  let user = c.get("user");
   const root = c.get("root");
 
   if (!user) {
@@ -47,6 +47,14 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     entityId: user.id,
     maxRequests: 1000,
   });
+
+  // only top up the remaining recipe versions if the user is a free user
+  if (user.subscriptionTier === "free") {
+    user = await root.services.userService.topUpRemainingRecipeVersions(
+      user.id,
+      {}
+    );
+  }
 
   return c.json(
     {

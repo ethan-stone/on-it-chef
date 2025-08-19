@@ -4,12 +4,28 @@ import { z } from "zod";
 import { Events } from "./events";
 import { RemoteConfigService } from "./remote-configs";
 
+/**
+ * OnItChef subscription handling.
+ *
+ * Users can be in one of three states:
+ * - Free: They have a free subscription.
+ * - Trial: They have a trial subscription.
+ * - Pro: They have a paid subscription.
+ *
+ * All subscriptions have a "subscriptionRenewalDate", including free.
+ *
+ * For free users, topping up the remaining recipe versions and updating the "subscriptionRenewalDate" is lazy. We check and update this in the "get-user" api route handler, which is essentially when the user users the app.
+ *
+ * For trial and pro users, we listen to a RevenueCat webhook to top up the remaining recipe versions and update the "subscriptionRenewalDate".
+ */
+
 const User = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string().nullish(),
   dietaryRestrictions: z.string().nullish(),
-  subscriptionRenewalDate: z.date().nullish(), // The date when the user's subscription expires. This is also the renewal date. If they renew this will be updated.
+  subscriptionTier: z.enum(["free", "trial", "pro"]),
+  subscriptionRenewalDate: z.date(), // The date when the user's subscription expires. This is also the renewal date. If they renew this will be updated. This is present even for free users.
   recipeVersionsLimit: z.number(),
   remainingRecipeVersions: z.number(),
   createdAt: z.date(),
@@ -53,6 +69,42 @@ export type CanCreateRecipeResult =
       code: "SUBSCRIPTION_EXPIRED" | "RECIPE_VERSIONS_LIMIT_REACHED";
       message: string;
     };
+
+type TopUpRemainingRecipeVersionsArgs = {
+  subscriptionRenewalDate?: Date; // An optional date to set the subscription renewal date to. If not provided, the subscription renewal date will be set to 1 month from the current date.
+};
+
+/**
+ * Adds `count` months to a given date.
+ * If the target month has fewer days than the original date,
+ * it will clamp to the last valid day of the target month.
+ *
+ * Example:
+ *   addMonths(new Date("2025-01-31"), 1) -> 2025-02-28
+ *   addMonths(new Date("2024-01-31"), 1) -> 2024-02-29 (leap year)
+ */
+export function addMonths(date: Date, count: number): Date {
+  const newDate = new Date(date.getTime());
+
+  const targetMonth = newDate.getMonth() + count;
+  const targetYear = newDate.getFullYear();
+
+  // Set to the 1st of the target month first (to avoid overflow issues)
+  const result = new Date(targetYear, targetMonth, 1);
+
+  // Get the last day of the target month
+  const lastDayOfTargetMonth = new Date(
+    targetYear,
+    targetMonth + 1,
+    0 // day 0 of next month = last day of target month
+  ).getDate();
+
+  // Clamp the day to the last valid day of the target month
+  const day = Math.min(newDate.getDate(), lastDayOfTargetMonth);
+  result.setDate(day);
+
+  return result;
+}
 
 export class UserService {
   private dbName = "onItChef";
@@ -228,5 +280,40 @@ export class UserService {
     );
     const duration = Date.now() - startTime;
     console.log(`[DB] decrementRemainingRecipeVersions: ${duration}ms`);
+  }
+
+  async topUpRemainingRecipeVersions(
+    userId: string,
+    args: TopUpRemainingRecipeVersionsArgs
+  ): Promise<User> {
+    const startTime = Date.now();
+    const user = await this.getUser(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const result = await this.usersColl.findOneAndUpdate(
+      { _id: userId },
+      {
+        $set: {
+          recipeVersionsLimit: user.recipeVersionsLimit,
+          remainingRecipeVersions: user.recipeVersionsLimit,
+          subscriptionRenewalDate: args.subscriptionRenewalDate
+            ? args.subscriptionRenewalDate
+            : addMonths(new Date(), 1),
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      throw new Error("User not found");
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[DB] topUpRemainingRecipeVersions: ${duration}ms`);
+
+    return fromMongo.user(result);
   }
 }
