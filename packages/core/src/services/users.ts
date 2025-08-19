@@ -97,6 +97,8 @@ export class UserService {
       return mongoUser;
     });
 
+    await session.endSession();
+
     const duration = Date.now() - startTime;
     console.log(`[DB] createUser: ${duration}ms`);
     return fromMongo.user(mongoUser);
