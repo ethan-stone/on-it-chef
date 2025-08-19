@@ -344,10 +344,40 @@ export class UserService {
 
   async updateLastActiveAt(userId: string): Promise<void> {
     const startTime = Date.now();
-    await this.usersColl.updateOne(
-      { _id: userId },
-      { $set: { lastActiveAt: new Date() } }
-    );
+
+    const session = this.client.startSession();
+
+    await session.withTransaction(async (session) => {
+      const user = await this.usersColl.findOneAndUpdate(
+        { _id: userId },
+        { $set: { lastActiveAt: new Date() } },
+        { session, returnDocument: "before" }
+      );
+
+      /**
+       * The lowest resolution for tracking user activity is 1 day.
+       * So we only record an activity event if the current day is different than the day of the previous "lastActiveAt".
+       */
+      if (
+        user &&
+        user.lastActiveAt &&
+        user.lastActiveAt.getDate() !== new Date().getDate()
+      ) {
+        await this.eventsColl.insertOne(
+          {
+            _id: this.uid("evt"),
+            type: "user.activity",
+            key: userId,
+            timestamp: new Date(),
+            payload: {
+              userId,
+            },
+          },
+          { session }
+        );
+      }
+    });
+
     const duration = Date.now() - startTime;
     console.log(`[DB] updateLastActiveAt: ${duration}ms`);
   }
