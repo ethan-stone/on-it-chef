@@ -10,10 +10,10 @@ export const service = new sst.aws.Service("ChangeStreamService", {
   cluster: cluster,
   image: {
     context: ".",
-    dockerfile: "packages/changeStream/Dockerfile",
+    dockerfile: "packages/change-stream/Dockerfile",
   },
   dev: {
-    command: "bun run --cwd packages/changeStream dev",
+    command: "bun run --cwd packages/change-stream dev",
   },
   link: [secrets.mongoUrl, eventsTopic],
   capacity: "spot", // Spot is okay for this use case. It's cheap and the change stream is resumable so it will pick up where it left off.
