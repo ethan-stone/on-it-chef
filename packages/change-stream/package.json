@@ -3,8 +3,8 @@
   "type": "module",
   "version": "0.0.0",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir dist --target node",
-    "start": "bun run dist/index.js",
+    "build": "bun build ./src/index.ts --outdir dist --target bun",
+    "start": "sst shell bun run dist/index.js",
     "dev": "bun run src/index.ts",
     "example": "bun run src/example.ts",
     "test": "bun test"
@@ -15,6 +15,7 @@
     "mongodb": "^6.17.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.20",
     "@types/node": "^24.0.3",
     "typescript": "^5.0.0"
   }

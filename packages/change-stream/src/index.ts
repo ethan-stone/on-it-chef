@@ -3,6 +3,7 @@ import { MongoClient } from "@on-it-chef/core/services/db";
 import { eventsHandler } from "./events-handler.js";
 import { Resource } from "sst";
 import { logger } from "./logger.js";
+import { generateHeapSnapshot } from "bun";
 
 async function main() {
   const client = new MongoClient(Resource.MongoUrl.value);
@@ -43,6 +44,19 @@ async function main() {
 
     // Start the change stream
     logger.info("Starting change stream...");
+
+    let occurences = 0;
+
+    setInterval(async () => {
+      occurences++;
+      // 10 minutes
+      const snapshot = generateHeapSnapshot();
+      await Bun.write(
+        `heap-snapshot-${occurences}.json`,
+        JSON.stringify(snapshot, null, 2)
+      );
+    }, 1000 * 60);
+
     await changeStream.start();
   } catch (error) {
     console.error(error);
