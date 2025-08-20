@@ -3,8 +3,9 @@ import { MongoClient } from "@on-it-chef/core/services/db";
 import { eventsHandler } from "./events-handler.js";
 import { Resource } from "sst";
 import { logger } from "./logger.js";
-import { generateHeapSnapshot } from "bun";
+import { writeHeapSnapshot } from "v8";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { readFileSync } from "fs";
 
 async function main() {
   const client = new MongoClient(Resource.MongoUrl.value);
@@ -51,18 +52,19 @@ async function main() {
     setInterval(async () => {
       occurences++;
       // 10 minutes
-      const snapshot = generateHeapSnapshot();
+      const fileName = writeHeapSnapshot();
+      const snapshotData = readFileSync(fileName);
       const s3Client = new S3Client({
         region: "us-east-1",
       });
       await s3Client.send(
         new PutObjectCommand({
           Bucket: Resource.MemorySnapshotBucket.name,
-          Key: `heap-snapshot-${occurences}.json`,
-          Body: JSON.stringify(snapshot, null, 2),
+          Key: `heap-snapshot-${occurences}.heapsnapshot`,
+          Body: snapshotData.toString(),
         })
       );
-    }, 1000 * 60);
+    }, 1000 * 60 * 30);
 
     await changeStream.start();
   } catch (error) {
