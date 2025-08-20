@@ -2,7 +2,7 @@
 
 # Stage 1: Build & Prepare (using Bun as the unified runtime)
 # We'll use this single stage for both building and running
-FROM oven/bun:1.1.17 AS builder_and_runtime
+FROM oven/bun:1.2.20 AS builder_and_runtime
 
 # Set working directory inside the container to the monorepo root (conceptually)
 WORKDIR /app
