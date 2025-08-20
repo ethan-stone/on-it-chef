@@ -1,7 +1,6 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
 import { errorResponseSchemas, HTTPException } from "../errors";
-import { generateRecipeVersion } from "../ai";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -120,12 +119,14 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       });
     }
 
-    // Call the AI to generate the new recipe version
-    const aiRecipe = await generateRecipeVersion(
-      message,
-      currentRecipe.recentVersions,
-      currentRecipe.dietaryRestrictions || undefined
-    );
+    const aiResponse = await root.services.aiService.generateStructuredContent({
+      prompt: root.services.recipesService.formatCreateRecipeVersionPrompt(
+        message,
+        currentRecipe.recentVersions,
+        currentRecipe.dietaryRestrictions || undefined
+      ),
+      schema: root.services.recipesService.structuredAIRecipeResponseSchema,
+    });
 
     // Create the new recipe version
     const updatedRecipe =
@@ -133,16 +134,17 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         recipeId,
         user.id,
         {
-          generatedName: aiRecipe.generatedName,
-          description: aiRecipe.description,
-          prepTime: aiRecipe.prepTime,
-          cookTime: aiRecipe.cookTime,
-          servings: aiRecipe.servings,
-          ingredients: aiRecipe.ingredients,
-          instructions: aiRecipe.instructions,
+          generatedName: aiResponse.content.generatedName,
+          description: aiResponse.content.description,
+          prepTime: aiResponse.content.prepTime,
+          cookTime: aiResponse.content.cookTime,
+          servings: aiResponse.content.servings,
+          ingredients: aiResponse.content.ingredients,
+          instructions: aiResponse.content.instructions,
           message: message,
         },
-        message
+        message,
+        aiResponse.usageMetadata
       );
 
     logger.info(

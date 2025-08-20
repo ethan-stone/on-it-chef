@@ -1,7 +1,6 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
 import { errorResponseSchemas, HTTPException } from "../errors";
-import { generateRecipe } from "../ai";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -114,24 +113,31 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       (includeDietaryRestrictions ? user.dietaryRestrictions : undefined);
 
     // Call the AI to generate the recipe
-    const aiRecipe = await generateRecipe(message, finalDietaryRestrictions);
+    const aiResponse = await root.services.aiService.generateStructuredContent({
+      prompt: root.services.recipesService.formatCreateRecipePrompt(
+        message,
+        finalDietaryRestrictions
+      ),
+      schema: root.services.recipesService.structuredAIRecipeResponseSchema,
+    });
 
     const recipe = await root.services.recipesService.createRecipe({
       dietaryRestrictions: finalDietaryRestrictions,
       visibility: visibility,
       initialRecipeVersion: {
         userId: user.id,
-        generatedName: aiRecipe.generatedName,
+        generatedName: aiResponse.content.generatedName,
         version: 1,
-        description: aiRecipe.description,
-        prepTime: aiRecipe.prepTime,
-        cookTime: aiRecipe.cookTime,
-        servings: aiRecipe.servings,
-        ingredients: aiRecipe.ingredients,
-        instructions: aiRecipe.instructions,
+        description: aiResponse.content.description,
+        prepTime: aiResponse.content.prepTime,
+        cookTime: aiResponse.content.cookTime,
+        servings: aiResponse.content.servings,
+        ingredients: aiResponse.content.ingredients,
+        instructions: aiResponse.content.instructions,
         message: message,
         createdAt: new Date(),
       },
+      usageMetadata: aiResponse.usageMetadata,
     });
 
     logger.info(`Created recipe ${recipe.id} for user ${user.id}`);

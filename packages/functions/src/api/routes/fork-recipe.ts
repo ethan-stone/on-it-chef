@@ -1,7 +1,6 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
 import { errorResponseSchemas, HTTPException } from "../errors";
-import { generateForkedRecipe } from "../ai";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -158,11 +157,14 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       (includeDietaryRestrictions ? user.dietaryRestrictions : undefined);
 
     // Generate the forked recipe using AI
-    const aiRecipe = await generateForkedRecipe(
-      userPrompt,
-      sourceVersion,
-      finalDietaryRestrictions
-    );
+    const aiResponse = await root.services.aiService.generateStructuredContent({
+      prompt: root.services.recipesService.formatForkRecipePrompt(
+        userPrompt,
+        sourceVersion,
+        finalDietaryRestrictions
+      ),
+      schema: root.services.recipesService.structuredAIRecipeResponseSchema,
+    });
 
     const forkedRecipe = await root.services.recipesService.forkRecipe(
       sourceRecipeId,
@@ -170,17 +172,18 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       user.id,
       userPrompt,
       {
-        generatedName: aiRecipe.generatedName,
-        description: aiRecipe.description,
-        prepTime: aiRecipe.prepTime,
-        cookTime: aiRecipe.cookTime,
-        servings: aiRecipe.servings,
-        ingredients: aiRecipe.ingredients,
-        instructions: aiRecipe.instructions,
+        generatedName: aiResponse.content.generatedName,
+        description: aiResponse.content.description,
+        prepTime: aiResponse.content.prepTime,
+        cookTime: aiResponse.content.cookTime,
+        servings: aiResponse.content.servings,
+        ingredients: aiResponse.content.ingredients,
+        instructions: aiResponse.content.instructions,
       },
       userGivenName,
       visibility,
-      finalDietaryRestrictions || undefined
+      finalDietaryRestrictions || undefined,
+      aiResponse.usageMetadata
     );
 
     logger.info(

@@ -9,6 +9,10 @@ const BaseEvent = z.object({
 const RecipeVersionCreatedEvent = BaseEvent.extend({
   type: z.literal("recipe_version.created"),
   payload: z.object({
+    model: z.string(),
+    durationMs: z.number(),
+    inputTokens: z.number(),
+    outputTokens: z.number(),
     recipeVersionId: z.string(),
     recipeId: z.string(),
     userId: z.string(), // The userId will be the key for this event type.

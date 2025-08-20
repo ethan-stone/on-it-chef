@@ -9,6 +9,7 @@ import {
 } from "@on-it-chef/core/services/remote-configs";
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
 import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
+import { AiService } from "@on-it-chef/core/services/ai";
 
 export type Root = {
   env: "development" | "production";
@@ -21,6 +22,7 @@ export type Root = {
     remoteConfigService: RemoteConfigService;
     adminApiKeyService: AdminApiKeyService;
     rateLimiter: RateLimiter;
+    aiService: AiService;
   };
 };
 

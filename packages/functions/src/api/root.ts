@@ -6,6 +6,12 @@ import { RecipeService } from "@on-it-chef/core/services/recipes";
 import { RemoteConfigService } from "@on-it-chef/core/services/remote-configs";
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
 import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
+import { AiService } from "@on-it-chef/core/services/ai";
+import { GoogleGenAI } from "@google/genai";
+
+const googleGenAI = new GoogleGenAI({
+  apiKey: Resource.GeminiApiKey.value,
+});
 
 let mongoClient: MongoClient | null = null;
 let userService: UserService | null = null;
@@ -13,6 +19,7 @@ let recipesService: RecipeService | null = null;
 let remoteConfigService: RemoteConfigService | null = null;
 let adminApiKeyService: AdminApiKeyService | null = null;
 let rateLimiter: RateLimiter | null = null;
+let aiService: AiService | null = null;
 
 export async function init(): Promise<Root> {
   if (!mongoClient) {
@@ -40,6 +47,10 @@ export async function init(): Promise<Root> {
     userService = new UserService(mongoClient, remoteConfigService);
   }
 
+  if (!aiService) {
+    aiService = new AiService(googleGenAI);
+  }
+
   return {
     env: "development",
     secrets: {
@@ -51,6 +62,7 @@ export async function init(): Promise<Root> {
       remoteConfigService,
       adminApiKeyService,
       rateLimiter,
+      aiService,
     },
   };
 }

@@ -45,6 +45,7 @@ async function main() {
     logger.info("Starting change stream...");
     await changeStream.start();
   } catch (error) {
+    console.error(error);
     logger.error("Failed to start change stream", error as Error);
     await client.close();
     process.exit(1);
