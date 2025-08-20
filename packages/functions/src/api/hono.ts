@@ -115,6 +115,7 @@ app.use("*", async (c, next) => {
 
     logger.info("Request finished", {
       duration,
+      httpStatusCode: c.res.status,
     });
   }
 });
