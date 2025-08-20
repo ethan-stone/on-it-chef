@@ -4,6 +4,7 @@ import { eventsHandler } from "./events-handler.js";
 import { Resource } from "sst";
 import { logger } from "./logger.js";
 import { generateHeapSnapshot } from "bun";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 async function main() {
   const client = new MongoClient(Resource.MongoUrl.value);
@@ -51,9 +52,15 @@ async function main() {
       occurences++;
       // 10 minutes
       const snapshot = generateHeapSnapshot();
-      await Bun.write(
-        `heap-snapshot-${occurences}.json`,
-        JSON.stringify(snapshot, null, 2)
+      const s3Client = new S3Client({
+        region: "us-east-1",
+      });
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: Resource.MemorySnapshotBucket.name,
+          Key: `heap-snapshot-${occurences}.json`,
+          Body: JSON.stringify(snapshot, null, 2),
+        })
       );
     }, 1000 * 60);
 

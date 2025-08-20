@@ -6,6 +6,8 @@ const cluster = new sst.aws.Cluster("ChangeStreamCluster", {
   vpc: vpc,
 });
 
+const memorySnapshotBucket = new sst.aws.Bucket("MemorySnapshotBucket");
+
 export const service = new sst.aws.Service("ChangeStreamService", {
   cluster: cluster,
   image: {
@@ -15,7 +17,7 @@ export const service = new sst.aws.Service("ChangeStreamService", {
   dev: {
     command: "bun run --cwd packages/change-stream dev",
   },
-  link: [secrets.mongoUrl, eventsTopic],
+  link: [secrets.mongoUrl, eventsTopic, memorySnapshotBucket],
   capacity: "spot", // Spot is okay for this use case. It's cheap and the change stream is resumable so it will pick up where it left off.
   scaling: {
     min: 1,
