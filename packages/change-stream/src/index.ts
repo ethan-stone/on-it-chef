@@ -5,7 +5,7 @@ import { Resource } from "sst";
 import { logger } from "./logger.js";
 import { writeHeapSnapshot } from "v8";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { readFileSync } from "fs";
+import { readFileSync, unlinkSync } from "fs";
 
 async function main() {
   const client = new MongoClient(Resource.MongoUrl.value);
@@ -64,6 +64,7 @@ async function main() {
           Body: snapshotData.toString(),
         })
       );
+      unlinkSync(fileName);
     }, 1000 * 60 * 30);
 
     await changeStream.start();
