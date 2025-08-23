@@ -20,6 +20,7 @@ export const service = new sst.aws.Service("ChangeStreamService", {
   link: [secrets.mongoUrl, eventsTopic, memorySnapshotBucket],
   capacity: "spot", // Spot is okay for this use case. It's cheap and the change stream is resumable so it will pick up where it left off.
   scaling: {
+    min: 0,
     max: 1,
   },
 });

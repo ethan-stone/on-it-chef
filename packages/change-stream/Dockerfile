@@ -2,7 +2,7 @@
 
 # Stage 1: Build & Prepare (using Bun as the unified runtime)
 # We'll use this single stage for both building and running
-FROM oven/bun:1.2.20 AS builder_and_runtime
+FROM oven/bun:1.2.20 AS builder
 
 # Set working directory inside the container to the monorepo root (conceptually)
 WORKDIR /app
@@ -37,19 +37,14 @@ COPY ../../packages ./packages
 RUN bun install --cwd packages/change-stream
 RUN bun run --cwd packages/change-stream build
 
-# --- Final Production Setup ---
-# The previous steps have created the necessary /app/packages/change-stream/dist output.
-# Bun will be used to run the compiled JavaScript.
+FROM node:22-slim AS runtime
 
-# Expose the port your application listens on
-# (Assuming your change-stream app listens on port 3000)
+WORKDIR /app
+
+# Copy only built output + package.json
+COPY --from=builder /app/packages/change-stream/package.json ./package.json
+COPY --from=builder /app/packages/change-stream/dist ./dist
+
 EXPOSE 3000
 
-# Entrypoint for the application
-# Specify the path to the compiled entry file relative to /app
-# 'bun run' will execute the JavaScript directly with the Bun runtime.
-# Ensure your `change-stream`'s `package.json` has a "start" script, e.g.:
-# "start": "bun run dist/index.js"
-CMD ["bun", "run", "--cwd", "packages/change-stream", "start"]
-# Alternatively, if you want to directly run the built file without a script:
-# CMD ["bun", "run", "packages/change-stream/dist/index.js"]
+CMD ["node", "dist/index.js"]
