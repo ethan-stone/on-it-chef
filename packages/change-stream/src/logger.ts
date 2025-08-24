@@ -1,18 +1,18 @@
 export const logger = {
   info: (message: string) => {
     const timestamp = new Date().toISOString();
-    console.info(`[${timestamp}] ${message}`);
+    console.info(`[${timestamp}] INFO ${message}`);
   },
   error: (message: string, error: unknown) => {
     const timestamp = new Date().toISOString();
-    console.error(`[${timestamp}] ${message}`);
+    console.error(`[${timestamp}] ERROR ${message}`);
   },
   warn: (message: string) => {
     const timestamp = new Date().toISOString();
-    console.warn(`[${timestamp}] ${message}`);
+    console.warn(`[${timestamp}] WARN ${message}`);
   },
   debug: (message: string) => {
     const timestamp = new Date().toISOString();
-    console.debug(`[${timestamp}] ${message}`);
+    console.debug(`[${timestamp}] DEBUG ${message}`);
   },
 };
