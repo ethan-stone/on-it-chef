@@ -24,8 +24,4 @@ export const service = new sst.aws.Service("ChangeStreamService", {
       desiredCount: 1,
     },
   },
-  scaling: {
-    min: 0,
-    max: 1,
-  },
 });
