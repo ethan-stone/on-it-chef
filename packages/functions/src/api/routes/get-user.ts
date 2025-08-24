@@ -2,6 +2,7 @@ import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { errorResponseSchemas, HTTPException } from "../errors";
 import { HonoEnv } from "../app";
 import { checkRateLimit } from "../rate-limit";
+import { addMonths } from "@on-it-chef/core/services/users";
 
 const route = createRoute({
   operationId: "getLoggedInUser",
@@ -48,11 +49,16 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     maxRequests: 1000,
   });
 
-  // only top up the remaining recipe versions if the user is a free user
-  if (user.subscriptionTier === "free") {
+  // only top up the remaining recipe versions if the user does not have a subscription
+  if (
+    (!user.subscription || !user.subscription.shouldGiveAccess) &&
+    user.remainingRecipeVersionsTopUpAt < new Date()
+  ) {
     user = await root.services.userService.topUpRemainingRecipeVersions(
       user.id,
-      {}
+      {
+        newRecipeVersionsLimit: 10,
+      }
     );
   }
 

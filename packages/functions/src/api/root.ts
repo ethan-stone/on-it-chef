@@ -8,6 +8,8 @@ import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
 import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
 import { AiService } from "@on-it-chef/core/services/ai";
 import { GoogleGenAI } from "@google/genai";
+import { EventService } from "@on-it-chef/core/services/events";
+import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
 
 const googleGenAI = new GoogleGenAI({
   apiKey: Resource.GeminiApiKey.value,
@@ -20,6 +22,8 @@ let remoteConfigService: RemoteConfigService | null = null;
 let adminApiKeyService: AdminApiKeyService | null = null;
 let rateLimiter: RateLimiter | null = null;
 let aiService: AiService | null = null;
+let eventService: EventService | null = null;
+let revenueCatService: RevenueCatService | null = null;
 
 export async function init(): Promise<Root> {
   if (!mongoClient) {
@@ -51,10 +55,22 @@ export async function init(): Promise<Root> {
     aiService = new AiService(googleGenAI);
   }
 
+  if (!eventService) {
+    eventService = new EventService(mongoClient);
+  }
+
+  if (!revenueCatService) {
+    revenueCatService = new RevenueCatService({
+      apiKey: Resource.RevenueCatRestApiKey.value,
+      projectId: Resource.RevenueCatProjectId.value,
+    });
+  }
+
   return {
     env: "development",
     secrets: {
       clerkWebhookSecret: Resource.ClerkWebhookSecret.value,
+      revenueCatWebhookAuthHeader: Resource.RevenueCatWebhookAuthHeader.value,
     },
     services: {
       userService,
@@ -63,6 +79,8 @@ export async function init(): Promise<Root> {
       adminApiKeyService,
       rateLimiter,
       aiService,
+      eventService,
+      revenueCatService,
     },
   };
 }

@@ -10,11 +10,14 @@ import {
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
 import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
 import { AiService } from "@on-it-chef/core/services/ai";
+import { EventService } from "@on-it-chef/core/services/events";
+import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
 
 export type Root = {
   env: "development" | "production";
   secrets: {
     clerkWebhookSecret: string;
+    revenueCatWebhookAuthHeader: string;
   };
   services: {
     userService: UserService;
@@ -23,6 +26,8 @@ export type Root = {
     adminApiKeyService: AdminApiKeyService;
     rateLimiter: RateLimiter;
     aiService: AiService;
+    eventService: EventService;
+    revenueCatService: RevenueCatService;
   };
 };
 

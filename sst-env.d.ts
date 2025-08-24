@@ -54,6 +54,22 @@ declare module "sst" {
     "OnItChefVpc": {
       "type": "sst.aws.Vpc"
     }
+    "RevenueCatProjectId": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "RevenueCatRestApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "RevenueCatWebhookAuthHeader": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SyncUserSubscriptionQueue": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
     "UserQuotaQueue": {
       "type": "sst.aws.Queue"
       "url": string

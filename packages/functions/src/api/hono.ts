@@ -25,6 +25,7 @@ import { ShareRecipe } from "./routes/share-recipe";
 import { ListSharedRecipes } from "./routes/list-shared-recipes";
 import { GetAllActiveRemoteConfigs } from "./routes/get-all-active-remote-configs";
 import { CreateRemoteConfig } from "./routes/admin/create-remote-config";
+import { RevenueCatWebhook } from "./routes/revenue-cat/revenue-cat-webhook";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -195,6 +196,7 @@ app.use("*", async (c, next) => {
 
 const routes = app
   .openapi(ClerkWebhook.route, ClerkWebhook.handler)
+  .openapi(RevenueCatWebhook.route, RevenueCatWebhook.handler)
   .openapi(GetLoggedInUser.route, GetLoggedInUser.handler)
   .openapi(ListRecipes.route, ListRecipes.handler)
   .openapi(CreateRecipe.route, CreateRecipe.handler)

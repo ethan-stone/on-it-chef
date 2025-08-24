@@ -8,6 +8,9 @@ export const apiFn = new sst.aws.Function("ApiFn", {
     secrets.clerkWebhookSecret,
     secrets.mongoUrl,
     secrets.geminiApiKey,
+    secrets.revenueCatWebhookAuthHeader,
+    secrets.revenueCatRestApiKey,
+    secrets.revenueCatProjectId,
   ],
   handler: "packages/functions/src/api/hono.handler",
   environment: {

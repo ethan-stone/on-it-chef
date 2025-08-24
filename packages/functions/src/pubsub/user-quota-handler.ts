@@ -1,7 +1,4 @@
-import { SNSMessage, SQSHandler } from "aws-lambda";
-import { Events } from "@on-it-chef/core/services/events";
 import { Logger } from "../utils/logger";
-import { safeJsonParse } from "../utils/safeJsonParse";
 import { MongoClient } from "mongodb";
 import { Resource } from "sst";
 import { UserService } from "@on-it-chef/core/services/users";
@@ -30,8 +27,8 @@ const userService = new UserService(mongoClient, remoteConfigService);
 const logger = new Logger({
   env: process.env.NODE_ENV === "production" ? "production" : "development",
   service: "functions",
-  namespace: "analytics",
-  dataset: "analytics",
+  namespace: "pubsub",
+  dataset: "user-quota-handler",
 });
 
 export const main = createEventHandler({

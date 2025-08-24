@@ -13,9 +13,13 @@ export default function HomeLayout() {
   useEffect(() => {
     if (user && remoteConfigs?.get("purchasesEnabled")?.value.enabled) {
       if (Platform.OS === "ios") {
-        Purchases.configure({
-          apiKey: "appl_hSEYKzhwqMlOrFFlTwaIiRZrgKj",
-          appUserID: user.id,
+        Purchases.isConfigured().then((isConfigured) => {
+          if (!isConfigured) {
+            Purchases.configure({
+              apiKey: process.env.EXPO_PUBLIC_APP_STORE_API_KEY!,
+              appUserID: user.id,
+            });
+          }
         });
       }
     }

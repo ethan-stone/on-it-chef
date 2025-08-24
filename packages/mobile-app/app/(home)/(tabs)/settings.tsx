@@ -96,10 +96,15 @@ export default function Settings() {
     setIsPresentingPaywall(true);
     try {
       const offerings = await Purchases.getOfferings();
+      const customer = await Purchases.getCustomerInfo();
+      console.log(customer);
       const defaultOffering = offerings.current;
 
       if (defaultOffering) {
-        await PurchasesPaywall.presentPaywall({ offering: defaultOffering });
+        const result = await PurchasesPaywall.presentPaywall({
+          offering: defaultOffering,
+        });
+        console.log(result);
       } else {
         showToast("No offerings available", "error");
       }

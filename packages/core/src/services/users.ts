@@ -23,11 +23,27 @@ const User = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string().nullish(),
+  subscription: z
+    .object({
+      tier: z.enum(["pro"]),
+      status: z.enum([
+        "trialing",
+        "active",
+        "expired",
+        "in_grace_period",
+        "in_billing_retry",
+        "unknown",
+        "incomplete",
+      ]),
+      periodStart: z.date(),
+      periodEnd: z.date(),
+      shouldGiveAccess: z.boolean(), // An easy to use boolean of whether or not the user should be granted the features of the subscription tier.
+    })
+    .nullish(),
   dietaryRestrictions: z.string().nullish(),
-  subscriptionTier: z.enum(["free", "trial", "pro"]),
-  subscriptionRenewalDate: z.date(), // The date when the user's subscription expires. This is also the renewal date. If they renew this will be updated. This is present even for free users.
   recipeVersionsLimit: z.number(),
   remainingRecipeVersions: z.number(),
+  remainingRecipeVersionsTopUpAt: z.date(), // If the user has a subscription, this is renewal date/period end of the subscription. If not it is manual tracked and lazily updated when fetching the user details.
   lastActiveAt: z.date().nullish(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -71,8 +87,9 @@ export type CanCreateRecipeResult =
       message: string;
     };
 
-type TopUpRemainingRecipeVersionsArgs = {
-  subscriptionRenewalDate?: Date; // An optional date to set the subscription renewal date to. If not provided, the subscription renewal date will be set to 1 month from the current date.
+export type TopUpRemainingRecipeVersionsOptions = {
+  newRecipeVersionsLimit?: number; // If provided, the user's recipe versions limit will be updated to this value and will be topped up to this value.
+  nextTopUpAt?: Date; // If provided, the user's next top up date will be updated to this value, otherwise it will just be a month from now.
 };
 
 /**
@@ -272,19 +289,6 @@ export class UserService {
       })
     ).value.enabled;
 
-    // If purchases are enabled check they are up to date on billing.
-    if (
-      purchasesEnabled &&
-      user.subscriptionRenewalDate &&
-      user.subscriptionRenewalDate < new Date()
-    ) {
-      return {
-        success: false,
-        code: "SUBSCRIPTION_EXPIRED",
-        message: "Subscription expired",
-      };
-    }
-
     if (user.remainingRecipeVersions <= 0) {
       return {
         success: false,
@@ -309,7 +313,7 @@ export class UserService {
 
   async topUpRemainingRecipeVersions(
     userId: string,
-    args: TopUpRemainingRecipeVersionsArgs
+    options: TopUpRemainingRecipeVersionsOptions
   ): Promise<User> {
     const startTime = Date.now();
     const user = await this.getUser(userId);
@@ -322,11 +326,12 @@ export class UserService {
       { _id: userId },
       {
         $set: {
-          recipeVersionsLimit: user.recipeVersionsLimit,
-          remainingRecipeVersions: user.recipeVersionsLimit,
-          subscriptionRenewalDate: args.subscriptionRenewalDate
-            ? args.subscriptionRenewalDate
-            : addMonths(new Date(), 1),
+          recipeVersionsLimit:
+            options.newRecipeVersionsLimit ?? user.recipeVersionsLimit,
+          remainingRecipeVersions:
+            options.newRecipeVersionsLimit ?? user.recipeVersionsLimit,
+          remainingRecipeVersionsTopUpAt:
+            options.nextTopUpAt ?? addMonths(new Date(), 1),
         },
       },
       { returnDocument: "after" }
@@ -338,6 +343,34 @@ export class UserService {
 
     const duration = Date.now() - startTime;
     console.log(`[DB] topUpRemainingRecipeVersions: ${duration}ms`);
+
+    return fromMongo.user(result);
+  }
+
+  async updateSubscription(
+    userId: string,
+    subscription: User["subscription"]
+  ): Promise<User> {
+    const startTime = Date.now();
+
+    const user = await this.getUser(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const result = await this.usersColl.findOneAndUpdate(
+      { _id: userId },
+      { $set: { subscription } },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      throw new Error("User not found");
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[DB] updateSubscription: ${duration}ms`);
 
     return fromMongo.user(result);
   }
