@@ -148,6 +148,10 @@ async function createIndexes() {
     key: 1,
   });
 
+  await events.createIndex({
+    sentAt: 1,
+  });
+
   await client.close();
 }
 
