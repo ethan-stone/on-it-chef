@@ -308,7 +308,6 @@ export class RevenueCatService {
 
     if (response.ok) {
       const data = await response.json();
-      console.log(data);
       const parsed = RevenueCatCustomer.safeParse(data);
       if (parsed.success) {
         return parsed.data;

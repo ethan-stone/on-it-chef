@@ -26,7 +26,6 @@ const userService = new UserService(mongoClient, remoteConfigService);
 
 export const main = createEventHandler({
   onEvent: async (event) => {
-    console.log(event);
     switch (event.type) {
       case "revenuecat.subscription.initial_purchase":
       case "revenuecat.subscription.renewal":
