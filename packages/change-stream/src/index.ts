@@ -46,26 +46,6 @@ async function main() {
     // Start the change stream
     logger.info("Starting change stream...");
 
-    let occurences = 0;
-
-    setInterval(async () => {
-      occurences++;
-      // 10 minutes
-      const fileName = writeHeapSnapshot();
-      const snapshotData = readFileSync(fileName);
-      const s3Client = new S3Client({
-        region: "us-east-1",
-      });
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: Resource.MemorySnapshotBucket.name,
-          Key: `heap-snapshot-${occurences}.heapsnapshot`,
-          Body: snapshotData.toString(),
-        })
-      );
-      unlinkSync(fileName);
-    }, 1000 * 60 * 30);
-
     await changeStream.start();
   } catch (error) {
     console.error(error);

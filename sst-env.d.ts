@@ -43,10 +43,6 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "MemorySnapshotBucket": {
-      "name": string
-      "type": "sst.aws.Bucket"
-    }
     "MongoUrl": {
       "type": "sst.sst.Secret"
       "value": string
