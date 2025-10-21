@@ -10,7 +10,7 @@
     "startCommand": "bun run start:change-stream",
     "healthcheckPath": "/healthcheck",
     "healthcheckTimeout": 60,
-    "sleepApplication": false,
+    "sleepApplication": true,
     "useLegacyStacker": false,
     "multiRegionConfig": {
       "us-east4-eqdc4a": {

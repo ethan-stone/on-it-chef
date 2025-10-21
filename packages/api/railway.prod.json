@@ -10,7 +10,7 @@
     "startCommand": "bun run start:api",
     "healthcheckPath": "/api/healthcheck",
     "healthcheckTimeout": 60,
-    "sleepApplication": false,
+    "sleepApplication": true,
     "useLegacyStacker": false,
     "multiRegionConfig": {
       "us-east4-eqdc4a": {
