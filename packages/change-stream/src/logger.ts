@@ -3,7 +3,7 @@ export const logger = {
     const timestamp = new Date().toISOString();
     console.info(`[${timestamp}] INFO ${message}`);
   },
-  error: (message: string, error: unknown) => {
+  error: (message: string, error?: unknown) => {
     const timestamp = new Date().toISOString();
     console.error(`[${timestamp}] ERROR ${message}`);
   },

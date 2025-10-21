@@ -121,13 +121,19 @@ app.use("*", async (c, next) => {
   }
 });
 
-app.use(
-  "*",
-  clerkMiddleware({
-    secretKey: Resource.ClerkSecretKey.value,
-    publishableKey: Resource.ClerkPublishableKey.value,
-  })
-);
+app.use("*", async (c, next) => {
+  const root = c.get("root");
+  const secretService = root.services.secretService;
+  const secretKey = await secretService.get("clerkSecretKey");
+  const publishableKey = await secretService.get("clerkPublishableKey");
+
+  const middlewareFn = clerkMiddleware({
+    secretKey: secretKey,
+    publishableKey: publishableKey,
+  });
+
+  return middlewareFn(c, next);
+});
 
 app.use("*", async (c, next) => {
   const session = c.get("clerkAuth")();
@@ -214,4 +220,7 @@ const routes = app
 
 export type Routes = typeof routes;
 
-export const handler = handle(app);
+Bun.serve({
+  fetch: app.fetch,
+  port: 5000,
+});

@@ -1,8 +1,10 @@
 import { Events } from "@on-it-chef/core/services/events";
 import { ChangeStreamHandler } from "./change-stream";
-import { publish } from "./sns";
 import { logger } from "./logger";
 import { client } from "./mongo-client";
+import { updateUserQuota } from "./update-user-quota";
+import { init } from "./root";
+import { syncUserSubscription } from "./sync-user-subscription";
 
 export const eventsHandler: ChangeStreamHandler = async (options) => {
   if (
@@ -11,23 +13,35 @@ export const eventsHandler: ChangeStreamHandler = async (options) => {
   ) {
     const event = options.change.fullDocument as Events;
 
-    if (event.sentAt) {
-      logger.info(`Event ${event._id} already sent. Skipping.`);
+    if (event.processedAt) {
+      logger.info(`Event ${event._id} already processed. Skipping.`);
       return;
     }
 
-    await publish({
-      deduplicationId: event._id,
-      message: JSON.stringify(event),
-      key: event.key,
-    });
+    switch (event.type) {
+      case "recipe_version.created":
+        await updateUserQuota(await init(), event);
+        break;
+      case "revenuecat.subscription.initial_purchase":
+      case "revenuecat.subscription.renewal":
+      case "revenuecat.subscription.cancellation":
+      case "revenuecat.subscription.uncancellation":
+      case "revenuecat.subscription.expiration": {
+        await syncUserSubscription(await init(), event);
+      }
+    }
 
     const eventsCollection = client.db("onItChef").collection<Events>("events");
 
-    const sentAt = new Date();
+    const processedAt = new Date();
 
-    await eventsCollection.updateOne({ _id: event._id }, { $set: { sentAt } });
+    await eventsCollection.updateOne(
+      { _id: event._id },
+      { $set: { processedAt } }
+    );
 
-    logger.info(`Sent event ${event._id} at ${sentAt.toISOString()}.`);
+    logger.info(
+      `Processed event ${event._id} at ${processedAt.toISOString()}.`
+    );
   }
 };

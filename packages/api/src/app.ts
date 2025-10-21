@@ -12,6 +12,7 @@ import { RateLimiter } from "@on-it-chef/core/services/rate-limiter";
 import { AiService } from "@on-it-chef/core/services/ai";
 import { EventService } from "@on-it-chef/core/services/events";
 import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
+import { SecretService } from "@on-it-chef/core/services/secrets";
 
 export type Root = {
   env: "development" | "production";
@@ -28,6 +29,7 @@ export type Root = {
     aiService: AiService;
     eventService: EventService;
     revenueCatService: RevenueCatService;
+    secretService: SecretService;
   };
 };
 

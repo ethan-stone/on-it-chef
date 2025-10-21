@@ -1,7 +1,10 @@
 {
-  "name": "@on-it-chef/functions",
+  "name": "@on-it-chef/api",
   "version": "0.0.0",
   "type": "module",
+  "scripts": {
+    "build": "bun build ./src/hono.ts --outdir dist --target node --sourcemap"
+  },
   "dependencies": {
     "@clerk/backend": "^2.2.0",
     "@google/genai": "^1.7.0",

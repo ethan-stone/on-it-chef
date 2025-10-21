@@ -1,7 +1,6 @@
 import { UserService } from "@on-it-chef/core/services/users";
 import { MongoClient } from "@on-it-chef/core/services/db";
 import { Root } from "./app";
-import { Resource } from "sst";
 import { RecipeService } from "@on-it-chef/core/services/recipes";
 import { RemoteConfigService } from "@on-it-chef/core/services/remote-configs";
 import { AdminApiKeyService } from "@on-it-chef/core/services/admin-api-keys";
@@ -10,11 +9,12 @@ import { AiService } from "@on-it-chef/core/services/ai";
 import { GoogleGenAI } from "@google/genai";
 import { EventService } from "@on-it-chef/core/services/events";
 import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
+import {
+  EnvSecretService,
+  SecretService,
+} from "@on-it-chef/core/services/secrets";
 
-const googleGenAI = new GoogleGenAI({
-  apiKey: Resource.GeminiApiKey.value,
-});
-
+let secretService: SecretService | null = null;
 let mongoClient: MongoClient | null = null;
 let userService: UserService | null = null;
 let recipesService: RecipeService | null = null;
@@ -24,11 +24,22 @@ let rateLimiter: RateLimiter | null = null;
 let aiService: AiService | null = null;
 let eventService: EventService | null = null;
 let revenueCatService: RevenueCatService | null = null;
+let googleGenAI: GoogleGenAI | null = null;
 
 export async function init(): Promise<Root> {
+  if (!secretService) {
+    secretService = new EnvSecretService();
+  }
+
   if (!mongoClient) {
-    mongoClient = new MongoClient(Resource.MongoUrl.value);
+    mongoClient = new MongoClient(await secretService.get("mongoUrl"));
     await mongoClient.connect();
+  }
+
+  if (!googleGenAI) {
+    googleGenAI = new GoogleGenAI({
+      apiKey: await secretService.get("geminiApiKey"),
+    });
   }
 
   if (!recipesService) {
@@ -61,16 +72,18 @@ export async function init(): Promise<Root> {
 
   if (!revenueCatService) {
     revenueCatService = new RevenueCatService({
-      apiKey: Resource.RevenueCatRestApiKey.value,
-      projectId: Resource.RevenueCatProjectId.value,
+      apiKey: await secretService.get("revenueCatRestApiKey"),
+      projectId: await secretService.get("revenueCatProjectId"),
     });
   }
 
   return {
     env: "development",
     secrets: {
-      clerkWebhookSecret: Resource.ClerkWebhookSecret.value,
-      revenueCatWebhookAuthHeader: Resource.RevenueCatWebhookAuthHeader.value,
+      clerkWebhookSecret: await secretService.get("clerkWebhookSecret"),
+      revenueCatWebhookAuthHeader: await secretService.get(
+        "revenueCatWebhookAuthHeader"
+      ),
     },
     services: {
       userService,
@@ -81,6 +94,7 @@ export async function init(): Promise<Root> {
       aiService,
       eventService,
       revenueCatService,
+      secretService,
     },
   };
 }

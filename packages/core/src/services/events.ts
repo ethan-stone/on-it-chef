@@ -6,7 +6,7 @@ const BaseEvent = z.object({
   _id: z.string(),
   key: z.string(),
   timestamp: z.string().pipe(z.coerce.date()),
-  sentAt: z.string().pipe(z.coerce.date()).nullish(),
+  processedAt: z.string().pipe(z.coerce.date()).nullish(),
   metadata: z.record(z.string(), z.string()).nullish(),
 });
 
