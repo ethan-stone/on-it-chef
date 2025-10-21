@@ -127,6 +127,10 @@ app.use("*", async (c, next) => {
   const secretKey = await secretService.get("CLERK_SECRET_KEY");
   const publishableKey = await secretService.get("CLERK_PUBLISHABLE_KEY");
 
+  if (c.req.path === "/healthcheck") {
+    return next();
+  }
+
   const middlewareFn = clerkMiddleware({
     secretKey: secretKey,
     publishableKey: publishableKey,
@@ -136,6 +140,10 @@ app.use("*", async (c, next) => {
 });
 
 app.use("*", async (c, next) => {
+  if (c.req.path === "/healthcheck") {
+    return next();
+  }
+
   const session = c.get("clerkAuth")();
   const root = c.get("root");
 
