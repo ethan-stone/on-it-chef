@@ -8,6 +8,7 @@
     "runtime": "V2",
     "numReplicas": 1,
     "startCommand": "bun run start:api",
+    "healthcheckPath": "/api/healthcheck",
     "sleepApplication": false,
     "useLegacyStacker": false,
     "multiRegionConfig": {

@@ -12,7 +12,6 @@ import { clerkMiddleware } from "@hono/clerk-auth";
 import { GetLoggedInUser } from "./routes/get-user";
 import { UpdateUserSettings } from "./routes/update-user-settings";
 import { init } from "./root";
-import { Resource } from "sst";
 import { ListRecipes } from "./routes/list-recipes";
 import { CreateRecipe } from "./routes/create-recipes";
 import { GenerateRecipeVersion } from "./routes/generate-recipe-version";
@@ -26,6 +25,8 @@ import { ListSharedRecipes } from "./routes/list-shared-recipes";
 import { GetAllActiveRemoteConfigs } from "./routes/get-all-active-remote-configs";
 import { CreateRemoteConfig } from "./routes/admin/create-remote-config";
 import { RevenueCatWebhook } from "./routes/revenue-cat/revenue-cat-webhook";
+import { Healthcheck } from "./routes/healthcheck";
+import { serve } from "@hono/node-server";
 
 const app = new OpenAPIHono<HonoEnv>({
   defaultHook: handleZodError,
@@ -216,11 +217,12 @@ const routes = app
   .openapi(ShareRecipe.route, ShareRecipe.handler)
   .openapi(ListSharedRecipes.route, ListSharedRecipes.handler)
   .openapi(GetAllActiveRemoteConfigs.route, GetAllActiveRemoteConfigs.handler)
-  .openapi(CreateRemoteConfig.route, CreateRemoteConfig.handler);
+  .openapi(CreateRemoteConfig.route, CreateRemoteConfig.handler)
+  .openapi(Healthcheck.route, Healthcheck.handler);
 
 export type Routes = typeof routes;
 
-Bun.serve({
+serve({
   fetch: app.fetch,
   port: 5000,
 });

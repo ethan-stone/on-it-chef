@@ -9,6 +9,7 @@
     "@clerk/backend": "^2.2.0",
     "@google/genai": "^1.7.0",
     "@hono/clerk-auth": "^3.0.0",
+    "@hono/node-server": "^1.19.5",
     "@hono/zod-openapi": "^0.19.8",
     "@on-it-chef/core": "workspace:*",
     "hono": "^4.8.3",

@@ -18,6 +18,7 @@
         "@clerk/backend": "^2.2.0",
         "@google/genai": "^1.7.0",
         "@hono/clerk-auth": "^3.0.0",
+        "@hono/node-server": "^1.19.5",
         "@hono/zod-openapi": "^0.19.8",
         "@on-it-chef/core": "workspace:*",
         "hono": "^4.8.3",
@@ -568,6 +569,8 @@
     "@google/genai": ["@google/genai@1.7.0", "", { "dependencies": { "google-auth-library": "^9.14.2", "ws": "^8.18.0", "zod": "^3.22.4", "zod-to-json-schema": "^3.22.4" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.11.0" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-s/OZLkrIfBwc+SFFaZoKdEogkw4in0YRTGc4Q483jnfchNBWzrNe560eZEfGJHQRPn6YfzJgECCx0sqEOMWvYw=="],
 
     "@hono/clerk-auth": ["@hono/clerk-auth@3.0.0", "", { "dependencies": { "@clerk/backend": "^2.1.0", "@clerk/types": "^4.60.1" }, "peerDependencies": { "hono": ">=3.*" } }, "sha512-Fm3rfeXSblm58qRu4rkB0zMe8uB5VWryjR87C0ZevF6NJXP4lWZVCdEUC5i4dx7EJoa90XepyBRF+XX4dywg8g=="],
+
+    "@hono/node-server": ["@hono/node-server@1.19.5", "", { "peerDependencies": { "hono": "^4" } }, "sha512-iBuhh+uaaggeAuf+TftcjZyWh2GEgZcVGXkNtskLVoWaXhnJtC5HLHrU8W1KHDoucqO1MswwglmkWLFyiDn4WQ=="],
 
     "@hono/zod-openapi": ["@hono/zod-openapi@0.19.8", "", { "dependencies": { "@asteasolutions/zod-to-openapi": "^7.3.0", "@hono/zod-validator": "^0.7.0" }, "peerDependencies": { "hono": ">=4.3.6", "zod": "3.*" } }, "sha512-CHUSW0K+bDGUYXovxQSbVjZffzoPeTsGu6wevPoGSmBdPuUw5yZqDeomnvyAAAAvEjhLQPlAsUyASc1Zi35exQ=="],
 
