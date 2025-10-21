@@ -1,4 +1,3 @@
-import { EnvSecretService } from "@on-it-chef/core/services/secrets";
 import { ChangeStream } from "./change-stream.js";
 import { eventsHandler } from "./events-handler.js";
 import { logger } from "./logger.js";

@@ -1,7 +1,7 @@
 import { Events } from "@on-it-chef/core/services/events";
 import { ChangeStreamHandler } from "./change-stream";
 import { logger } from "./logger";
-import { client } from "./mongo-client";
+import { getMongoClient } from "./mongo-client";
 import { updateUserQuota } from "./update-user-quota";
 import { init } from "./root";
 import { syncUserSubscription } from "./sync-user-subscription";
@@ -30,6 +30,8 @@ export const eventsHandler: ChangeStreamHandler = async (options) => {
         await syncUserSubscription(await init(), event);
       }
     }
+
+    const client = await getMongoClient();
 
     const eventsCollection = client.db("onItChef").collection<Events>("events");
 
