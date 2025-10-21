@@ -1,19 +1,20 @@
+import { EnvSecretService } from "@on-it-chef/core/services/secrets";
 import { ChangeStream } from "./change-stream.js";
 import { eventsHandler } from "./events-handler.js";
 import { logger } from "./logger.js";
-import { client } from "./mongo-client.js";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { getMongoClient } from "./mongo-client.js";
 
 let isReady = false;
 
 async function main() {
-  try {
-    await client.connect();
+  const mongoClient = await getMongoClient();
 
+  try {
     logger.info("Connected to MongoDB successfully");
 
-    const db = client.db("onItChef");
+    const db = mongoClient.db("onItChef");
 
     // Create the change stream instance
     const changeStream = new ChangeStream(
@@ -31,14 +32,14 @@ async function main() {
     process.on("SIGINT", async () => {
       logger.info("Received SIGINT, shutting down gracefully...");
       await changeStream.stop();
-      await client.close();
+      await mongoClient.close();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
       logger.info("Received SIGTERM, shutting down gracefully...");
       await changeStream.stop();
-      await client.close();
+      await mongoClient.close();
       process.exit(0);
     });
 
@@ -51,7 +52,7 @@ async function main() {
   } catch (error) {
     console.error(error);
     logger.error("Failed to start change stream", error as Error);
-    await client.close();
+    await mongoClient.close();
     process.exit(1);
   }
 }
