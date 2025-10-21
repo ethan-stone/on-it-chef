@@ -4,7 +4,6 @@ import { handleZodError } from "./errors";
 import { prettyJSON } from "hono/pretty-json";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { ClerkWebhook } from "./routes/clerk/clerk-webhook";
-import { handle } from "hono/aws-lambda";
 import { uid } from "./uid";
 import { envSchema } from "./env";
 import { ILogger, Logger } from "./logger";
@@ -224,5 +223,5 @@ export type Routes = typeof routes;
 
 serve({
   fetch: app.fetch,
-  port: 5000,
+  port: process.env.PORT ? parseInt(process.env.PORT) : 4000,
 });
