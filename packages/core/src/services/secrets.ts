@@ -1,12 +1,12 @@
 export interface SecretMap {
-  clerkSecretKey: string;
-  clerkPublishableKey: string;
-  clerkWebhookSecret: string;
-  mongoUrl: string;
-  geminiApiKey: string;
-  revenueCatWebhookAuthHeader: string;
-  revenueCatRestApiKey: string;
-  revenueCatProjectId: string;
+  CLERK_SECRET_KEY: string;
+  CLERK_PUBLISHABLE_KEY: string;
+  CLERK_WEBHOOK_SECRET: string;
+  MONGO_URL: string;
+  GEMINI_API_KEY: string;
+  REVENUE_CAT_WEBHOOK_AUTH_HEADER: string;
+  REVENUE_CAT_REST_API_KEY: string;
+  REVENUE_CAT_PROJECT_ID: string;
 }
 
 export interface SecretService {

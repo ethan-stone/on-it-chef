@@ -32,13 +32,13 @@ export async function init(): Promise<Root> {
   }
 
   if (!mongoClient) {
-    mongoClient = new MongoClient(await secretService.get("mongoUrl"));
+    mongoClient = new MongoClient(await secretService.get("MONGO_URL"));
     await mongoClient.connect();
   }
 
   if (!googleGenAI) {
     googleGenAI = new GoogleGenAI({
-      apiKey: await secretService.get("geminiApiKey"),
+      apiKey: await secretService.get("GEMINI_API_KEY"),
     });
   }
 
@@ -72,17 +72,17 @@ export async function init(): Promise<Root> {
 
   if (!revenueCatService) {
     revenueCatService = new RevenueCatService({
-      apiKey: await secretService.get("revenueCatRestApiKey"),
-      projectId: await secretService.get("revenueCatProjectId"),
+      apiKey: await secretService.get("REVENUE_CAT_REST_API_KEY"),
+      projectId: await secretService.get("REVENUE_CAT_PROJECT_ID"),
     });
   }
 
   return {
     env: "development",
     secrets: {
-      clerkWebhookSecret: await secretService.get("clerkWebhookSecret"),
+      clerkWebhookSecret: await secretService.get("CLERK_WEBHOOK_SECRET"),
       revenueCatWebhookAuthHeader: await secretService.get(
-        "revenueCatWebhookAuthHeader"
+        "REVENUE_CAT_WEBHOOK_AUTH_HEADER"
       ),
     },
     services: {

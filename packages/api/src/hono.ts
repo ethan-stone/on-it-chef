@@ -124,8 +124,8 @@ app.use("*", async (c, next) => {
 app.use("*", async (c, next) => {
   const root = c.get("root");
   const secretService = root.services.secretService;
-  const secretKey = await secretService.get("clerkSecretKey");
-  const publishableKey = await secretService.get("clerkPublishableKey");
+  const secretKey = await secretService.get("CLERK_SECRET_KEY");
+  const publishableKey = await secretService.get("CLERK_PUBLISHABLE_KEY");
 
   const middlewareFn = clerkMiddleware({
     secretKey: secretKey,

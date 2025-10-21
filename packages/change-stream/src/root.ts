@@ -30,7 +30,7 @@ export async function init(): Promise<Root> {
     secretService = new EnvSecretService();
   }
   if (!mongoClient) {
-    mongoClient = new MongoClient(await secretService.get("mongoUrl"));
+    mongoClient = new MongoClient(await secretService.get("MONGO_URL"));
     await mongoClient.connect();
   }
   if (!eventService) {
@@ -38,8 +38,8 @@ export async function init(): Promise<Root> {
   }
   if (!revenueCatService) {
     revenueCatService = new RevenueCatService({
-      apiKey: await secretService.get("revenueCatRestApiKey"),
-      projectId: await secretService.get("revenueCatProjectId"),
+      apiKey: await secretService.get("REVENUE_CAT_REST_API_KEY"),
+      projectId: await secretService.get("REVENUE_CAT_PROJECT_ID"),
     });
   }
   if (!remoteConfigService) {
