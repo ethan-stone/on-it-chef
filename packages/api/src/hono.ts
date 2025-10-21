@@ -127,7 +127,7 @@ app.use("*", async (c, next) => {
   const secretKey = await secretService.get("CLERK_SECRET_KEY");
   const publishableKey = await secretService.get("CLERK_PUBLISHABLE_KEY");
 
-  if (c.req.path === "/healthcheck") {
+  if (c.req.path === "/api/healthcheck") {
     return next();
   }
 
@@ -140,7 +140,9 @@ app.use("*", async (c, next) => {
 });
 
 app.use("*", async (c, next) => {
-  if (c.req.path === "/healthcheck") {
+  console.log("c.req.path", c.req.path);
+
+  if (c.req.path === "/api/healthcheck") {
     return next();
   }
 
