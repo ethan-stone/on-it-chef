@@ -140,8 +140,6 @@ app.use("*", async (c, next) => {
 });
 
 app.use("*", async (c, next) => {
-  console.log("c.req.path", c.req.path);
-
   if (c.req.path === "/api/healthcheck") {
     return next();
   }
