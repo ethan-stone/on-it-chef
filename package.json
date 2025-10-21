@@ -2,11 +2,8 @@
   "name": "on-it-chef",
   "version": "0.0.0",
   "scripts": {
-    "build": "sst build",
-    "console": "sst console",
-    "deploy": "sst deploy",
-    "dev": "sst dev",
-    "remove": "sst remove",
+    "build:api": "bun build ./packages/api/src/hono.ts --outdir packages/api/dist --target node --sourcemap",
+    "build:change-stream": "bun build ./packages/change-stream/src/index.ts --outdir packages/change-stream/dist --target node --sourcemap",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
