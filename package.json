@@ -4,6 +4,8 @@
   "scripts": {
     "build:api": "bun build ./packages/api/src/hono.ts --outdir packages/api/dist --target node --sourcemap",
     "build:change-stream": "bun build ./packages/change-stream/src/index.ts --outdir packages/change-stream/dist --target node --sourcemap",
+    "start:api": "node package/api/dist/hono.js",
+    "start:change-stream": "node packages/change-stream/dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
