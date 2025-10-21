@@ -60,25 +60,6 @@
         "vitest": "^2",
       },
     },
-    "packages/functions": {
-      "name": "@on-it-chef/functions",
-      "version": "0.0.0",
-      "dependencies": {
-        "@clerk/backend": "^2.2.0",
-        "@google/genai": "^1.7.0",
-        "@hono/clerk-auth": "^3.0.0",
-        "@hono/zod-openapi": "^0.19.8",
-        "@on-it-chef/core": "workspace:*",
-        "hono": "^4.8.3",
-        "sst": "*",
-        "svix": "^1.68.0",
-        "zod": "^3.25.67",
-        "zod-error": "^1.5.0",
-      },
-      "devDependencies": {
-        "@types/aws-lambda": "^8",
-      },
-    },
     "packages/mobile-app": {
       "name": "@on-it-chef/mobile-app",
       "version": "1.0.0",
@@ -655,8 +636,6 @@
     "@on-it-chef/change-stream": ["@on-it-chef/change-stream@workspace:packages/change-stream"],
 
     "@on-it-chef/core": ["@on-it-chef/core@workspace:packages/core"],
-
-    "@on-it-chef/functions": ["@on-it-chef/functions@workspace:packages/functions"],
 
     "@on-it-chef/mobile-app": ["@on-it-chef/mobile-app@workspace:packages/mobile-app"],
 
