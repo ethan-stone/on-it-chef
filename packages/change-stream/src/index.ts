@@ -2,6 +2,10 @@ import { ChangeStream } from "./change-stream.js";
 import { eventsHandler } from "./events-handler.js";
 import { logger } from "./logger.js";
 import { client } from "./mongo-client.js";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+
+let isReady = false;
 
 async function main() {
   try {
@@ -42,6 +46,8 @@ async function main() {
     logger.info("Starting change stream...");
 
     await changeStream.start();
+
+    isReady = true;
   } catch (error) {
     console.error(error);
     logger.error("Failed to start change stream", error as Error);
@@ -54,4 +60,19 @@ async function main() {
 main().catch((error) => {
   logger.error("Unhandled error in main", error as Error);
   process.exit(1);
+});
+
+const app = new Hono();
+
+app.get("/healthcheck", (c) => {
+  if (isReady) {
+    return c.json({ message: "OK" }, 200);
+  } else {
+    return c.json({ message: "Not ready" }, 500);
+  }
+});
+
+serve({
+  fetch: app.fetch,
+  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
 });
