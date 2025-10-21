@@ -221,7 +221,13 @@ const routes = app
 
 export type Routes = typeof routes;
 
+const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+const host = process.env.HOST ? process.env.HOST : "0.0.0.0";
+
+console.log(`Starting server on ${host}:${port}`);
+
 serve({
   fetch: app.fetch,
-  port: process.env.PORT ? parseInt(process.env.PORT) : 4000,
+  port,
+  hostname: host,
 });

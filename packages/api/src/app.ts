@@ -1,4 +1,3 @@
-import { LambdaContext, LambdaEvent } from "hono/aws-lambda";
 import { ILogger } from "./logger";
 import { User, UserService } from "@on-it-chef/core/services/users";
 import { ContextVariableMap } from "hono";
@@ -13,6 +12,7 @@ import { AiService } from "@on-it-chef/core/services/ai";
 import { EventService } from "@on-it-chef/core/services/events";
 import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
 import { SecretService } from "@on-it-chef/core/services/secrets";
+import { HttpBindings } from "@hono/node-server";
 
 export type Root = {
   env: "development" | "production";
@@ -34,10 +34,7 @@ export type Root = {
 };
 
 export type HonoEnv = {
-  Bindings: {
-    event: LambdaEvent;
-    lambdaContext: LambdaContext;
-  };
+  Bindings: HttpBindings;
   Variables: {
     reqId: string;
     logger: ILogger;
