@@ -1,6 +1,10 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
-import { errorResponseSchemas, HTTPException } from "../errors";
+import {
+  errorResponseSchemas,
+  handleServiceResult,
+  HTTPException,
+} from "../errors";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -85,98 +89,58 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     maxRequests: 1000,
   });
 
-  const canCreateRecipeVersion =
-    await root.services.userService.canCreateRecipeVersion(user.id);
-
-  if (!canCreateRecipeVersion.success) {
-    throw new HTTPException({
-      type: "FORBIDDEN",
-      message: canCreateRecipeVersion.message,
-      code: canCreateRecipeVersion.code,
-    });
-  }
-
   const { recipeId, message } = c.req.valid("json");
 
-  try {
-    // Get the current recipe to verify ownership and get previous versions
-    const currentRecipe = await root.services.recipesService.getRecipe(
-      recipeId
-    );
-
-    if (!currentRecipe) {
-      throw new HTTPException({
-        type: "NOT_FOUND",
-        message: "Recipe not found",
-      });
+  const result = await root.services.recipesServiceV2.createRecipeVersion(
+    {
+      actor: {
+        type: "user",
+        id: user.id,
+      },
+      logger,
+      scopes: [],
+    },
+    {
+      recipeId: recipeId,
+      prompt: message,
     }
+  );
 
-    // Verify the user owns this recipe
-    if (currentRecipe.userId !== user.id) {
-      throw new HTTPException({
-        type: "FORBIDDEN",
-        message: "You don't have permission to modify this recipe",
-      });
-    }
-
-    const aiResponse = await root.services.aiService.generateStructuredContent({
-      prompt: root.services.recipesService.formatCreateRecipeVersionPrompt(
-        message,
-        currentRecipe.recentVersions,
-        currentRecipe.dietaryRestrictions || undefined
-      ),
-      schema: root.services.recipesService.structuredAIRecipeResponseSchema,
-    });
-
-    // Create the new recipe version
-    const updatedRecipe =
-      await root.services.recipesService.createRecipeVersion(
-        recipeId,
-        user.id,
-        {
-          generatedName: aiResponse.content.generatedName,
-          description: aiResponse.content.description,
-          prepTime: aiResponse.content.prepTime,
-          cookTime: aiResponse.content.cookTime,
-          servings: aiResponse.content.servings,
-          ingredients: aiResponse.content.ingredients,
-          instructions: aiResponse.content.instructions,
-          message: message,
-        },
-        message,
-        aiResponse.usageMetadata
-      );
-
-    logger.info(
-      `Generated new version for recipe ${recipeId} for user ${user.id}`
-    );
-
-    logger.metric(
-      `Generated new version for recipe ${recipeId} for user ${user.id}`,
-      {
-        name: "recipe.version.created",
-        userId: user.id,
-        recipeId: recipeId,
-        recipeVersionId: updatedRecipe.recentVersions.sort(
-          (a, b) => b.version - a.version
-        )[0].id,
-        timestamp: Date.now(),
-      }
-    );
-
-    return c.json(updatedRecipe, 200);
-  } catch (error) {
-    logger.error("Error generating recipe version", { error });
-
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-
-    throw new HTTPException({
+  const updatedRecipe = handleServiceResult(result, logger, {
+    NO_ACCESS: {
+      type: "FORBIDDEN",
+      message:
+        "You do not have access to generate a new version of this recipe.",
+      code: "NO_ACCESS",
+    },
+    USER_NOT_FOUND: {
       type: "INTERNAL_SERVER_ERROR",
-      message: "Failed to generate recipe version",
-    });
-  }
+      message: "User is authenticated but does not exist?",
+    },
+    RECIPE_NOT_FOUND: {
+      type: "NOT_FOUND",
+      message: `Recipe with id ${recipeId} not found`,
+    },
+  });
+
+  logger.info(
+    `Generated new version for recipe ${recipeId} for user ${user.id}`
+  );
+
+  logger.metric(
+    `Generated new version for recipe ${recipeId} for user ${user.id}`,
+    {
+      name: "recipe.version.created",
+      userId: user.id,
+      recipeId: recipeId,
+      recipeVersionId: updatedRecipe.recentVersions.sort(
+        (a, b) => b.version - a.version
+      )[0].id,
+      timestamp: Date.now(),
+    }
+  );
+
+  return c.json(updatedRecipe, 200);
 };
 
 export const GenerateRecipeVersion = {

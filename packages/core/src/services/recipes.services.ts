@@ -1,6 +1,9 @@
 import { MongoClient } from "mongodb";
 import { RecipeGenerator } from "../gateways/recipe-generator";
-import { RecipeVersionRepository } from "../repos/recipe-versions";
+import {
+  RecipeVersion,
+  RecipeVersionRepository,
+} from "../repos/recipe-versions";
 import { Recipe, RecipeRepository } from "../repos/recipes";
 import { SharedRecipeRepository } from "../repos/shared-recipes";
 import { UserRepository } from "../repos/users";
@@ -32,6 +35,16 @@ type ForkRecipeError =
   | "USER_NOT_FOUND"
   | "SOURCE_RECIPE_VERSION_NOT_FOUND"
   | "SOURCE_RECIPE_NOT_FOUND";
+
+type CreateRecipeVersionArgs = {
+  recipeId: string;
+  prompt: string;
+};
+
+type CreateRecipeVersionError =
+  | "NO_ACCESS"
+  | "USER_NOT_FOUND"
+  | "RECIPE_NOT_FOUND";
 
 export class RecipesService {
   constructor(
@@ -303,6 +316,97 @@ export class RecipesService {
     return {
       ok: true,
       value: forkedRecipe,
+    };
+  }
+
+  async createRecipeVersion(
+    ctx: ServiceContext,
+    args: CreateRecipeVersionArgs
+  ): Promise<Result<Recipe, CreateRecipeVersionError>> {
+    if (ctx.actor.type === "user") {
+      const user = await this.userRepo.getById(ctx.actor.id);
+
+      if (!user) {
+        ctx.logger.error(`User ${ctx.actor.id} not found`);
+        return {
+          ok: false,
+          error: "USER_NOT_FOUND",
+        };
+      }
+    }
+
+    const recipe = await this.recipeRepo.getById(args.recipeId);
+
+    if (!recipe) {
+      ctx.logger.error(`Recipe ${args.recipeId} not found`);
+
+      return {
+        ok: false,
+        error: "RECIPE_NOT_FOUND",
+      };
+    }
+
+    const accessInfo = await getRecipeAccessInfo(ctx, recipe, {
+      recipeRepo: this.recipeRepo,
+      sharedRecipeRepo: this.sharedRecipeRepo,
+    });
+
+    if (!accessInfo.canEdit) {
+      ctx.logger.error(
+        `Actor ${ctx.actor.type} ${ctx.actor.id} does not have permission to create recipe version for recipe ${args.recipeId}`
+      );
+
+      return {
+        ok: false,
+        error: "NO_ACCESS",
+      };
+    }
+
+    const generatedRecipeVersion = await this.recipeGenerator.newVersion(
+      args.prompt,
+      recipe.recentVersions,
+      recipe.dietaryRestrictions
+    );
+
+    const session = this.mongoClient.startSession();
+
+    const updatedRecipe = await session.withTransaction(async (session) => {
+      const recipeVersionId = this.recipeVersionRepo.uid("recipe_ver");
+      const now = new Date();
+
+      const recipeVersion: RecipeVersion = {
+        id: recipeVersionId,
+        recipeId: args.recipeId,
+        userId: recipe.userId,
+        generatedName: generatedRecipeVersion.generatedName,
+        version: recipe.recentVersions.length + 1,
+        description: generatedRecipeVersion.description,
+        prepTime: generatedRecipeVersion.prepTime,
+        cookTime: generatedRecipeVersion.cookTime,
+        servings: generatedRecipeVersion.servings,
+        ingredients: generatedRecipeVersion.ingredients,
+        instructions: generatedRecipeVersion.instructions,
+        message: args.prompt,
+        createdAt: now,
+      };
+
+      const createdRecipeVersion = await this.recipeVersionRepo.create(
+        recipeVersion,
+        session
+      );
+
+      const updatedRecipe = await this.recipeRepo.pushRecipeVersion(
+        args.recipeId,
+        createdRecipeVersion,
+        session
+      );
+
+      return updatedRecipe;
+    });
+
+    return {
+      ok: true,
+      value: updatedRecipe,
     };
   }
 }
