@@ -4,7 +4,7 @@ import {
   RecipeVersion,
   RecipeVersionRepository,
 } from "../repos/recipe-versions";
-import { Recipe, RecipeRepository } from "../repos/recipes";
+import { Recipe, RecipeRepository, TextSearchFilter } from "../repos/recipes";
 import { SharedRecipeRepository } from "../repos/shared-recipes";
 import { UserRepository } from "../repos/users";
 import { ServiceContext } from "./service-context";
@@ -52,6 +52,12 @@ type ShareRecipeArgs = {
 };
 
 type ShareRecipeError = "NO_ACCESS" | "USER_NOT_FOUND" | "RECIPE_NOT_FOUND";
+
+type TextSearchArgs = {
+  query: string;
+};
+
+type TextSearchError = "NO_ACCESS" | "USER_NOT_FOUND" | "RECIPE_NOT_FOUND";
 
 export class RecipesService {
   constructor(
@@ -488,6 +494,24 @@ export class RecipesService {
     return {
       ok: true,
       value: undefined,
+    };
+  }
+
+  async textSearch(
+    ctx: ServiceContext,
+    args: TextSearchArgs
+  ): Promise<Result<Recipe[], TextSearchError>> {
+    const filter: TextSearchFilter = { query: args.query };
+
+    if (ctx.actor.type === "user") {
+      filter.userId = ctx.actor.id;
+    }
+
+    const recipes = await this.recipeRepo.textSearch(filter);
+
+    return {
+      ok: true,
+      value: recipes,
     };
   }
 }

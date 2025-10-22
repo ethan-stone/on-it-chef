@@ -1,6 +1,10 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
-import { errorResponseSchemas, HTTPException } from "../errors";
+import {
+  errorResponseSchemas,
+  handleServiceResult,
+  HTTPException,
+} from "../errors";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -83,14 +87,25 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   const { query } = c.req.valid("query");
 
-  const recipes = await root.services.recipesService.searchRecipes(
-    user.id,
-    query
+  const result = await root.services.recipesServiceV2.textSearch(
+    {
+      actor: {
+        type: "user",
+        id: user.id,
+      },
+      logger,
+      scopes: [],
+    },
+    {
+      query: query,
+    }
   );
+
+  const recipes = handleServiceResult(result, logger, {});
 
   return c.json(
     {
-      recipes,
+      recipes: recipes,
     },
     200
   );

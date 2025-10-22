@@ -75,11 +75,11 @@ export const fromMongo = {
   },
 };
 
-type ListRecipesFilter = {
+export type ListRecipesFilter = {
   userId?: string;
 };
 
-type SearchRecipesFilter = {
+export type TextSearchFilter = {
   userId?: string;
   query: string;
 };
@@ -203,7 +203,7 @@ export class RecipeRepository {
     );
   }
 
-  async search(filter: SearchRecipesFilter): Promise<Recipe[]> {
+  async textSearch(filter: TextSearchFilter): Promise<Recipe[]> {
     return withQueryLogging(
       "search",
       this.recipesColl.collectionName,

@@ -68,3 +68,11 @@ export async function getRecipeAccessInfo(
 
   return rule(ctx, recipe, deps);
 }
+
+export async function getRecipeVisiblityFilter(ctx: ServiceContext) {
+  if (ctx.actor.type === "user") {
+    return {
+      userId: ctx.actor.id,
+    };
+  }
+}
