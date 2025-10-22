@@ -46,6 +46,13 @@ type CreateRecipeVersionError =
   | "USER_NOT_FOUND"
   | "RECIPE_NOT_FOUND";
 
+type ShareRecipeArgs = {
+  recipeId: string;
+  sharedWithEmail: string;
+};
+
+type ShareRecipeError = "NO_ACCESS" | "USER_NOT_FOUND" | "RECIPE_NOT_FOUND";
+
 export class RecipesService {
   constructor(
     private readonly mongoClient: MongoClient,
@@ -407,6 +414,80 @@ export class RecipesService {
     return {
       ok: true,
       value: updatedRecipe,
+    };
+  }
+
+  async shareRecipe(
+    ctx: ServiceContext,
+    args: ShareRecipeArgs
+  ): Promise<Result<void, ShareRecipeError>> {
+    if (ctx.actor.type === "user") {
+      const user = await this.userRepo.getById(ctx.actor.id);
+
+      if (!user) {
+        ctx.logger.error(`User ${ctx.actor.id} not found`);
+
+        return {
+          ok: false,
+          error: "USER_NOT_FOUND",
+        };
+      }
+    }
+
+    const recipe = await this.recipeRepo.getById(args.recipeId);
+
+    if (!recipe) {
+      ctx.logger.error(`Recipe ${args.recipeId} not found`);
+
+      return {
+        ok: false,
+        error: "RECIPE_NOT_FOUND",
+      };
+    }
+
+    const accessInfo = await getRecipeAccessInfo(ctx, recipe, {
+      recipeRepo: this.recipeRepo,
+      sharedRecipeRepo: this.sharedRecipeRepo,
+    });
+
+    if (!accessInfo.canEdit) {
+      ctx.logger.error(
+        `Actor ${ctx.actor.type} ${ctx.actor.id} does not have permission to share recipe ${args.recipeId}`
+      );
+
+      return {
+        ok: false,
+        error: "NO_ACCESS",
+      };
+    }
+
+    const sharedWithUser = await this.userRepo.getByEmail(args.sharedWithEmail);
+
+    // If the user does not exist consider it a success and continue.
+    // We don't to expose the user's existence to the caller.
+    // We just say "if the user has an account with this email address, they will receive an email with the recipe."
+    if (!sharedWithUser) {
+      ctx.logger.info(`User ${args.sharedWithEmail} not found`);
+
+      return {
+        ok: true,
+        value: undefined,
+      };
+    }
+
+    await this.sharedRecipeRepo.create({
+      id: this.sharedRecipeRepo.uid("shared_recipe"),
+      recipeId: recipe.id,
+      sharedBy: recipe.userId,
+      sharedWith: sharedWithUser.id,
+      sharedAt: new Date(),
+    });
+
+    // TODO: Send email and/or push notification to the shared user.
+
+    return {
+      ok: true,
+      value: undefined,
     };
   }
 }

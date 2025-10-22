@@ -1,5 +1,9 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
-import { errorResponseSchemas, HTTPException } from "../errors";
+import {
+  errorResponseSchemas,
+  handleServiceResult,
+  HTTPException,
+} from "../errors";
 import { HonoEnv } from "../app";
 import { checkRateLimit } from "../rate-limit";
 
@@ -57,73 +61,52 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
 
   const { recipeId, shareWithEmail } = c.req.valid("json");
 
-  try {
-    const recipe = await root.services.recipesService.getRecipe(recipeId);
+  const recipe = await root.services.recipesService.getRecipe(recipeId);
 
-    if (!recipe) {
-      throw new HTTPException({
-        type: "NOT_FOUND",
-        message: "Recipe not found",
-      });
-    }
-
-    if (recipe.userId !== user.id) {
-      throw new HTTPException({
-        type: "FORBIDDEN",
-        message: "You don't have permission to share this recipe",
-      });
-    }
-
-    const sharedWithUser = await root.services.userService.getUserByEmail(
-      shareWithEmail
-    );
-
-    if (!sharedWithUser) {
-      logger.info(
-        `User with provided email not found. Return early and consider it success since we don't want to expose the user doesn't exist.`
-      );
-      return c.json(
-        {
-          success: true,
-        },
-        200
-      );
-    }
-
-    if (sharedWithUser.id === user.id) {
-      logger.info(
-        `User is trying to share with themself. Return early and consider it success.`
-      );
-      return c.json(
-        {
-          success: true,
-        },
-        200
-      );
-    }
-
-    await root.services.recipesService.shareRecipe(recipeId, sharedWithUser.id);
-
-    // TODO: Send email and/or push notification to the shared user.
-
-    return c.json(
-      {
-        success: true,
-      },
-      200
-    );
-  } catch (error) {
-    logger.error("Error sharing recipe", { error });
-
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-
+  if (!recipe) {
     throw new HTTPException({
-      type: "INTERNAL_SERVER_ERROR",
-      message: "Failed to share recipe",
+      type: "NOT_FOUND",
+      message: "Recipe not found",
     });
   }
+
+  const result = await root.services.recipesServiceV2.shareRecipe(
+    {
+      actor: {
+        type: "user",
+        id: user.id,
+      },
+      logger,
+      scopes: [],
+    },
+    {
+      recipeId: recipeId,
+      sharedWithEmail: shareWithEmail,
+    }
+  );
+
+  handleServiceResult(result, logger, {
+    NO_ACCESS: {
+      type: "FORBIDDEN",
+      message: "You do not have access to share this recipe.",
+      code: "NO_ACCESS",
+    },
+    USER_NOT_FOUND: {
+      type: "INTERNAL_SERVER_ERROR",
+      message: "User is authenticated but does not exist?",
+    },
+    RECIPE_NOT_FOUND: {
+      type: "NOT_FOUND",
+      message: "Recipe not found",
+    },
+  });
+
+  return c.json(
+    {
+      success: true,
+    },
+    200
+  );
 };
 
 export const ShareRecipe = {
