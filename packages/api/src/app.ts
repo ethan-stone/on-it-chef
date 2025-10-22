@@ -13,6 +13,7 @@ import { EventService } from "@on-it-chef/core/services/events";
 import { RevenueCatService } from "@on-it-chef/core/services/revenue-cat";
 import { SecretService } from "@on-it-chef/core/services/secrets";
 import { HttpBindings } from "@hono/node-server";
+import { RecipesService } from "@on-it-chef/core/services/recipes.services";
 
 export type Root = {
   env: "development" | "production";
@@ -22,6 +23,7 @@ export type Root = {
   };
   services: {
     userService: UserService;
+    recipesServiceV2: RecipesService;
     recipesService: RecipeService;
     remoteConfigService: RemoteConfigService;
     adminApiKeyService: AdminApiKeyService;

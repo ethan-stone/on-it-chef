@@ -13,11 +13,18 @@ import {
   EnvSecretService,
   SecretService,
 } from "@on-it-chef/core/services/secrets";
+import { RecipesService } from "@on-it-chef/core/services/recipes.services";
+import { RecipeRepository } from "@on-it-chef/core/repos/recipes";
+import { RecipeVersionRepository } from "@on-it-chef/core/repos/recipe-versions";
+import { SharedRecipeRepository } from "@on-it-chef/core/repos/shared-recipes";
+import { RecipeGenerator } from "@on-it-chef/core/gateways/recipe-generator";
+import { UserRepository } from "@on-it-chef/core/repos/users";
 
 let secretService: SecretService | null = null;
 let mongoClient: MongoClient | null = null;
 let userService: UserService | null = null;
 let recipesService: RecipeService | null = null;
+let recipesServiceV2: RecipesService | null = null;
 let remoteConfigService: RemoteConfigService | null = null;
 let adminApiKeyService: AdminApiKeyService | null = null;
 let rateLimiter: RateLimiter | null = null;
@@ -40,6 +47,17 @@ export async function init(): Promise<Root> {
     googleGenAI = new GoogleGenAI({
       apiKey: await secretService.get("GEMINI_API_KEY"),
     });
+  }
+
+  if (!recipesServiceV2) {
+    recipesServiceV2 = new RecipesService(
+      mongoClient,
+      new RecipeRepository(mongoClient),
+      new RecipeVersionRepository(mongoClient),
+      new SharedRecipeRepository(mongoClient),
+      new RecipeGenerator(googleGenAI),
+      new UserRepository(mongoClient)
+    );
   }
 
   if (!recipesService) {
@@ -88,6 +106,7 @@ export async function init(): Promise<Root> {
     services: {
       userService,
       recipesService,
+      recipesServiceV2,
       remoteConfigService,
       adminApiKeyService,
       rateLimiter,

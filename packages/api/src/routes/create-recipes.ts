@@ -1,6 +1,10 @@
 import { createRoute, RouteHandler, z } from "@hono/zod-openapi";
 import { HonoEnv } from "../app";
-import { errorResponseSchemas, HTTPException } from "../errors";
+import {
+  errorResponseSchemas,
+  handleServiceResult,
+  HTTPException,
+} from "../errors";
 import { checkRateLimit } from "../rate-limit";
 
 const route = createRoute({
@@ -88,17 +92,6 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     maxRequests: 1000,
   });
 
-  const canCreateRecipe =
-    await root.services.userService.canCreateRecipeVersion(user.id);
-
-  if (!canCreateRecipe.success) {
-    throw new HTTPException({
-      type: "FORBIDDEN",
-      message: canCreateRecipe.message,
-      code: canCreateRecipe.code,
-    });
-  }
-
   const {
     visibility,
     includeDietaryRestrictions,
@@ -106,60 +99,37 @@ export const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
     message,
   } = c.req.valid("json");
 
-  try {
-    // Use custom dietary restrictions if provided, otherwise fall back to user's saved preferences
-    const finalDietaryRestrictions =
-      customDietaryRestrictions ||
-      (includeDietaryRestrictions ? user.dietaryRestrictions : undefined);
-
-    // Call the AI to generate the recipe
-    const aiResponse = await root.services.aiService.generateStructuredContent({
-      prompt: root.services.recipesService.formatCreateRecipePrompt(
-        message,
-        finalDietaryRestrictions
-      ),
-      schema: root.services.recipesService.structuredAIRecipeResponseSchema,
-    });
-
-    const recipe = await root.services.recipesService.createRecipe({
-      dietaryRestrictions: finalDietaryRestrictions,
-      visibility: visibility,
-      initialRecipeVersion: {
-        userId: user.id,
-        generatedName: aiResponse.content.generatedName,
-        version: 1,
-        description: aiResponse.content.description,
-        prepTime: aiResponse.content.prepTime,
-        cookTime: aiResponse.content.cookTime,
-        servings: aiResponse.content.servings,
-        ingredients: aiResponse.content.ingredients,
-        instructions: aiResponse.content.instructions,
-        message: message,
-        createdAt: new Date(),
+  const result = await root.services.recipesServiceV2.createRecipe(
+    {
+      actor: {
+        type: "user",
+        id: user.id,
       },
-      usageMetadata: aiResponse.usageMetadata,
-    });
-
-    logger.info(`Created recipe ${recipe.id} for user ${user.id}`);
-
-    logger.metric(`Created recipe ${recipe.id} for user ${user.id}`, {
-      name: "recipe.version.created",
+      logger,
+      scopes: [],
+    },
+    {
       userId: user.id,
-      recipeId: recipe.id,
-      recipeVersionId: recipe.recentVersions.sort(
-        (a, b) => b.version - a.version
-      )[0].id,
-      timestamp: Date.now(),
-    });
+      prompt: message,
+      visibility: visibility,
+      customDietaryRestrictions: customDietaryRestrictions,
+      includeDietaryRestrictions: includeDietaryRestrictions,
+    }
+  );
 
-    return c.json(recipe, 200);
-  } catch (error) {
-    logger.error("Error creating recipe", { error });
-    throw new HTTPException({
+  const recipe = handleServiceResult(result, logger, {
+    NO_ACCESS: {
+      type: "FORBIDDEN",
+      message: "You do not have access to create recipes for this user.",
+      code: "NO_ACCESS",
+    },
+    USER_NOT_FOUND: {
       type: "INTERNAL_SERVER_ERROR",
-      message: "Failed to create recipe",
-    });
-  }
+      message: "User is authenticated but does not exist?",
+    },
+  });
+
+  return c.json(recipe, 200);
 };
 
 export const CreateRecipe = {

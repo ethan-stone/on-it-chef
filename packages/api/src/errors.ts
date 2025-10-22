@@ -3,6 +3,7 @@ import { HTTPException as HonoHTTPException } from "hono/http-exception";
 import { z } from "@hono/zod-openapi";
 import { generateErrorMessage } from "zod-error";
 import { HonoEnv } from "./app";
+import { ILogger } from "./logger";
 
 export const ErrorType = z.enum([
   "NOT_FOUND",
@@ -17,6 +18,7 @@ export const ErrorType = z.enum([
 export const ErrorCode = z.enum([
   "SUBSCRIPTION_EXPIRED",
   "RECIPE_VERSIONS_LIMIT_REACHED",
+  "NO_ACCESS",
 ]);
 
 export function createErrorSchema(
@@ -202,4 +204,53 @@ export function handleError(err: Error, ctx: Context<HonoEnv>): Response {
     },
     500
   );
+}
+
+type HttpMap = Record<
+  string,
+  {
+    type: z.infer<typeof ErrorType>;
+    message: string;
+    code?: z.infer<typeof ErrorCode>;
+  }
+>;
+
+export function handleServiceResult<T, E extends string>(
+  result: { ok: boolean; value?: T; error?: E },
+  logger: ILogger,
+  mappings: HttpMap
+): T {
+  if (result.ok) {
+    logger.info("Service call successful");
+
+    return result.value as T;
+  }
+
+  const map = mappings[result.error as string];
+
+  if (!map) {
+    logger.error("Service call failed with unknown error", {
+      error: {
+        message: "Service call failed with unknown error",
+        stack: new Error().stack,
+      },
+    });
+
+    throw new HTTPException({
+      type: "INTERNAL_SERVER_ERROR",
+      message: "Unexpected error in service call",
+    });
+  }
+
+  logger.error("Service call failed with known error", {
+    error: {
+      message: "Service call failed with known error",
+    },
+  });
+
+  throw new HTTPException({
+    type: map.type,
+    message: map.message,
+    code: map.code,
+  });
 }
