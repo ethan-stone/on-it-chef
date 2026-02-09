@@ -2,6 +2,7 @@ import { HonoEnv } from "./app";
 import { handleError } from "./errors";
 import { handleZodError } from "./errors";
 import { prettyJSON } from "hono/pretty-json";
+import { cors } from "hono/cors";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { ClerkWebhook } from "./routes/clerk/clerk-webhook";
 import { uid } from "./uid";
@@ -33,6 +34,14 @@ const app = new OpenAPIHono<HonoEnv>({
 
 app.onError(handleError);
 app.use(prettyJSON());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 
 app.openAPIRegistry.registerComponent("securitySchemes", "oauth2", {
   type: "oauth2",

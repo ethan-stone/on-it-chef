@@ -2,11 +2,14 @@
   "name": "on-it-chef",
   "version": "0.0.0",
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "build:api": "bun build ./packages/api/src/hono.ts --outdir packages/api/dist --target node --sourcemap",
-    "build:change-stream": "bun build ./packages/change-stream/src/index.ts --outdir packages/change-stream/dist --target node --sourcemap",
     "start:api": "node packages/api/dist/hono.js",
+    "dev:api": "bun --filter=@on-it-chef/api dev",
+    "build:change-stream": "bun build ./packages/change-stream/src/index.ts --outdir packages/change-stream/dist --target node --sourcemap",
     "start:change-stream": "node packages/change-stream/dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "dev:change-stream": "bun run --env-file=packages/change-stream/.env.local --watch packages/change-stream/src/index.ts",
+    "dev:web": "bun --filter=@on-it-chef/web-app dev"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22",
@@ -14,8 +17,5 @@
   },
   "workspaces": [
     "packages/*"
-  ],
-  "dependencies": {
-    "sst": "^3"
-  }
+  ]
 }

@@ -5,7 +5,7 @@
   "scripts": {
     "build": "bun build ./src/index.ts --outdir dist --target node --sourcemap",
     "start": "bun run dist/index.js",
-    "dev": "bun run src/index.ts",
+    "dev": "bun run --env-file=.env.local --watch src/index.ts",
     "example": "bun run src/example.ts",
     "test": "bun test"
   },
@@ -14,7 +14,7 @@
     "@aws-sdk/client-sns": "^3.864.0",
     "@hono/node-server": "^1.19.5",
     "@on-it-chef/core": "workspace:*",
-    "hono": "^4.10.1",
+    "hono": "^4.11.9",
     "mongodb": "^6.17.0"
   },
   "devDependencies": {

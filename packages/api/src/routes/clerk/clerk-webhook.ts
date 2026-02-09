@@ -59,7 +59,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
       "svix-signature": svixSignature,
     };
 
-    const payload = c.env.event.body;
+    const payload = await c.req.text();
 
     if (!payload) {
       throw new HTTPException({
@@ -85,8 +85,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         email: evt.data.email_addresses[0].email_address,
         recipeVersionsLimit: 10,
         remainingRecipeVersions: 10,
-        subscriptionTier: "free",
-        subscriptionRenewalDate: addMonths(now, 1),
+        remainingRecipeVersionsTopUpAt: addMonths(now, 1),
         lastActiveAt: now,
         createdAt: now,
         updatedAt: now,
@@ -98,8 +97,7 @@ const handler: RouteHandler<typeof route, HonoEnv> = async (c) => {
         email: evt.data.email_addresses[0].email_address,
         recipeVersionsLimit: 10,
         remainingRecipeVersions: 10,
-        subscriptionTier: "free",
-        subscriptionRenewalDate: addMonths(now, 1),
+        remainingRecipeVersionsTopUpAt: addMonths(now, 1),
         lastActiveAt: now,
         createdAt: now,
         updatedAt: now,
